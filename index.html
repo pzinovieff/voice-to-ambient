@@ -405,6 +405,11 @@ async function startRecording() {
     mediaRecorder.onstop = async () => {
       const blob = new Blob(recordedChunks, { type: 'audio/webm' });
       rawAudioBuffer = await nativeCtx.decodeAudioData(await blob.arrayBuffer());
+      // Close native context to release iOS from "voice call" audio routing
+      if (nativeCtx && nativeCtx.state !== 'closed') {
+        nativeCtx.close().catch(() => {});
+        nativeCtx = null;
+      }
       statusEl.textContent = `Recorded ${rawAudioBuffer.duration.toFixed(1)}s of audio. Ready to generate.`;
       btnGenerate.disabled = false;
       levelFill.style.width = '0%';
@@ -428,11 +433,6 @@ async function startRecording() {
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-  // Close the native AudioContext to release iOS audio session from "voice" mode
-  if (nativeCtx && nativeCtx.state !== 'closed') {
-    nativeCtx.close().catch(() => {});
-    nativeCtx = null;
-  }
   cancelAnimationFrame(levelAnimId);
   isRecording = false;
   btnRecord.textContent = 'Record';
