@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice to Ambient</title>
+<script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0f;
+  color: #b0b0c0;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+h1 {
+  font-size: 1.4rem;
+  color: #6a6a8a;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+#status {
+  font-size: 0.85rem;
+  color: #5a5a7a;
+  margin-bottom: 1rem;
+  min-height: 1.2em;
+  text-align: center;
+  max-width: 400px;
+}
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+button {
+  background: #1a1a2e;
+  color: #8888aa;
+  border: 1px solid #2a2a4a;
+  padding: 0.7rem 1.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+}
+button:hover:not(:disabled) {
+  background: #22223a;
+  border-color: #4a4a6a;
+  color: #aaaacc;
+}
+button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+button.recording {
+  border-color: #6a2a2a;
+  color: #cc6666;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+button.generating {
+  border-color: #2a4a6a;
+  color: #6699cc;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+#level-meter {
+  width: 300px;
+  height: 4px;
+  background: #1a1a2e;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+#level-fill {
+  height: 100%;
+  width: 0%;
+  background: #4a4a6a;
+  transition: width 0.05s;
+}
+#progress-wrap {
+  width: 300px;
+  margin-bottom: 1.5rem;
+  display: none;
+}
+#progress-bar {
+  width: 100%;
+  height: 3px;
+  background: #1a1a2e;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+#progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #4a4a6a;
+  transition: width 0.5s linear;
+}
+#time-display {
+  font-size: 0.75rem;
+  color: #4a4a6a;
+  text-align: center;
+}
+#gen-progress {
+  font-size: 0.7rem;
+  color: #3a5a6a;
+  margin-bottom: 0.5rem;
+  min-height: 1em;
+  text-align: center;
+}
+
+/* ─── Audio Controls Panel ─── */
+#audio-controls {
+  width: 100%;
+  max-width: 600px;
+  border: 1px solid #1a1a2e;
+  padding: 1.2rem;
+  margin-top: 0.5rem;
+  display: none;
+}
+#audio-controls h2 {
+  font-size: 0.75rem;
+  color: #4a4a6a;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.ctrl-section {
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid #111122;
+}
+.ctrl-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.ctrl-section h3 {
+  font-size: 0.7rem;
+  color: #5a5a7a;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.4rem;
+}
+.ctrl-row label {
+  font-size: 0.7rem;
+  color: #6a6a8a;
+  width: 100px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.ctrl-row input[type="range"] {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #1a1a2e;
+  outline: none;
+  border-radius: 2px;
+}
+.ctrl-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #4a4a6a;
+  cursor: pointer;
+  border: none;
+}
+.ctrl-row input[type="range"]::-webkit-slider-thumb:hover {
+  background: #6a6a8a;
+}
+.ctrl-row .val {
+  font-size: 0.65rem;
+  color: #4a4a6a;
+  width: 50px;
+  text-align: left;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<h1>Voice to Ambient</h1>
+<div id="status">Press record and hum, sing, or speak for a few seconds.</div>
+<div id="gen-progress"></div>
+<div id="level-meter"><div id="level-fill"></div></div>
+<div class="controls">
+  <button id="btn-record">Record</button>
+  <button id="btn-generate" disabled>Generate Soundscape</button>
+  <button id="btn-stop-playback" disabled>Stop</button>
+</div>
+<div id="progress-wrap">
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="time-display">0:00 / 2:00</div>
+</div>
+
+<div id="audio-controls">
+  <h2>Audio Controls</h2>
+
+  <div class="ctrl-section">
+    <h3>MusicGen Output</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-music-vol" min="-20" max="6" step="1" value="0">
+      <span class="val" id="val-music-vol">0 dB</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Voice Texture</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-voice-vol" min="-30" max="0" step="1" value="-12">
+      <span class="val" id="val-voice-vol">-12 dB</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Grain Size</label>
+      <input type="range" id="ctrl-voice-grain" min="0.03" max="0.2" step="0.005" value="0.08">
+      <span class="val" id="val-voice-grain">80ms</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Reverb</label>
+      <input type="range" id="ctrl-voice-reverb" min="0" max="1" step="0.01" value="0.7">
+      <span class="val" id="val-voice-reverb">70%</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Master</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-master-vol" min="-20" max="6" step="1" value="0">
+      <span class="val" id="val-master-vol">0 dB</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const CROSSFADE_SEC = 2;
+const SEGMENT_DURATION = 30;
+const TOTAL_DURATION = 120;
+
+const statusEl = document.getElementById('status');
+const genProgressEl = document.getElementById('gen-progress');
+const levelFill = document.getElementById('level-fill');
+const btnRecord = document.getElementById('btn-record');
+const btnGenerate = document.getElementById('btn-generate');
+const btnStop = document.getElementById('btn-stop-playback');
+const progressWrap = document.getElementById('progress-wrap');
+const progressFill = document.getElementById('progress-fill');
+const timeDisplay = document.getElementById('time-display');
+const audioControlsPanel = document.getElementById('audio-controls');
+
+let nativeCtx = null;
+let rawAudioBuffer = null;
+let recordedBlob = null;
+let isRecording = false;
+let mediaStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let analyserNode = null;
+let levelAnimId = null;
+
+// Playback state
+let playing = false;
+let progressAnimId = null;
+let allDisposables = [];
+let nodes = {};
+let playbackStartTime = 0;
+
+// ─── RECORDING ───
+
+btnRecord.addEventListener('click', async () => {
+  if (isRecording) stopRecording(); else await startRecording();
+});
+
+async function startRecording() {
+  try {
+    if (!nativeCtx) nativeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (nativeCtx.state === 'suspended') await nativeCtx.resume();
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(mediaStream);
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      recordedBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+      rawAudioBuffer = await nativeCtx.decodeAudioData(await recordedBlob.arrayBuffer());
+      statusEl.textContent = `Recorded ${rawAudioBuffer.duration.toFixed(1)}s of audio. Ready to generate.`;
+      btnGenerate.disabled = false;
+      levelFill.style.width = '0%';
+    };
+    const source = nativeCtx.createMediaStreamSource(mediaStream);
+    analyserNode = nativeCtx.createAnalyser();
+    analyserNode.fftSize = 256;
+    source.connect(analyserNode);
+    startLevelMeter();
+    mediaRecorder.start();
+    isRecording = true;
+    btnRecord.textContent = 'Stop Recording';
+    btnRecord.classList.add('recording');
+    btnGenerate.disabled = true;
+    statusEl.textContent = 'Recording...';
+  } catch (err) {
+    statusEl.textContent = 'Mic access denied. Please allow microphone access.';
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  cancelAnimationFrame(levelAnimId);
+  isRecording = false;
+  btnRecord.textContent = 'Record';
+  btnRecord.classList.remove('recording');
+}
+
+function startLevelMeter() {
+  const data = new Uint8Array(analyserNode.fftSize);
+  (function update() {
+    analyserNode.getByteTimeDomainData(data);
+    let max = 0;
+    for (let i = 0; i < data.length; i++) { const v = Math.abs(data[i] - 128) / 128; if (v > max) max = v; }
+    levelFill.style.width = (max * 100) + '%';
+    levelAnimId = requestAnimationFrame(update);
+  })();
+}
+
+// ─── GENERATE (calls backend) ───
+
+btnGenerate.addEventListener('click', async () => {
+  if (!recordedBlob) return;
+  stopPlayback();
+  await generateSoundscape();
+});
+
+btnStop.addEventListener('click', () => stopPlayback());
+
+async function generateSoundscape() {
+  btnGenerate.disabled = true;
+  btnRecord.disabled = true;
+  btnGenerate.classList.add('generating');
+  btnStop.disabled = false;
+  statusEl.textContent = 'Generating your soundscape... This takes 1-2 minutes.';
+  genProgressEl.textContent = 'Connecting to MusicGen AI...';
+
+  const formData = new FormData();
+  formData.append('audio', recordedBlob, 'recording.webm');
+
+  try {
+    // Use SSE endpoint for progress updates
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok && !response.headers.get('content-type')?.includes('event-stream')) {
+      const err = await response.json();
+      throw new Error(err.error || 'Generation failed');
+    }
+
+    // Parse SSE stream
+    const segmentUrls = [];
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+
+      let eventType = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          eventType = line.slice(7).trim();
+        } else if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6));
+
+          if (eventType === 'progress') {
+            genProgressEl.textContent = data.status;
+            console.log(`[MusicGen] ${data.status}`);
+          } else if (eventType === 'segment') {
+            segmentUrls.push(data.url);
+            genProgressEl.textContent = `Section ${data.segment} of 4 complete`;
+            console.log(`[MusicGen] Segment ${data.segment}: ${data.url}`);
+          } else if (eventType === 'error') {
+            throw new Error(data.message);
+          } else if (eventType === 'complete') {
+            console.log('[MusicGen] All segments complete');
+          }
+        }
+      }
+    }
+
+    if (segmentUrls.length === 0) {
+      throw new Error('No audio segments received');
+    }
+
+    genProgressEl.textContent = 'Loading audio...';
+    await startPlayback(segmentUrls);
+
+  } catch (err) {
+    console.error('[MusicGen] Error:', err);
+    statusEl.textContent = `Error: ${err.message}`;
+    genProgressEl.textContent = '';
+    btnGenerate.disabled = false;
+    btnRecord.disabled = false;
+    btnGenerate.classList.remove('generating');
+    btnStop.disabled = true;
+  }
+}
+
+// ─── PLAYBACK: MusicGen segments + voice texture overlay ───
+
+async function startPlayback(segmentUrls) {
+  await Tone.start();
+
+  // Decode all segment audio buffers
+  const audioCtx = Tone.getContext().rawContext;
+  const segmentBuffers = [];
+  for (let i = 0; i < segmentUrls.length; i++) {
+    genProgressEl.textContent = `Loading section ${i + 1}...`;
+    const resp = await fetch(segmentUrls[i]);
+    const arrayBuf = await resp.arrayBuffer();
+    const decoded = await audioCtx.decodeAudioData(arrayBuf);
+    segmentBuffers.push(decoded);
+  }
+
+  genProgressEl.textContent = '';
+  btnGenerate.classList.remove('generating');
+
+  // ─── Master output ───
+  const masterVol = new Tone.Volume(0).toDestination();
+
+  // ─── MusicGen playback: schedule segments with crossfades ───
+  const musicGain = new Tone.Volume(0).connect(masterVol);
+
+  // Create Tone buffers and schedule playback
+  const musicSources = [];
+  let totalMusicDuration = 0;
+
+  for (let i = 0; i < segmentBuffers.length; i++) {
+    const buf = segmentBuffers[i];
+    const toneBuf = new Tone.ToneAudioBuffer().fromArray(
+      Array.from({ length: buf.numberOfChannels }, (_, ch) => buf.getChannelData(ch))
+    );
+
+    const player = new Tone.Player(toneBuf).connect(musicGain);
+    player.fadeIn = i === 0 ? 0 : CROSSFADE_SEC;
+    player.fadeOut = i === segmentBuffers.length - 1 ? 3 : CROSSFADE_SEC;
+
+    // Schedule start time: each segment overlaps the previous by CROSSFADE_SEC
+    const startOffset = i === 0 ? 0 : (i * SEGMENT_DURATION) - (i * CROSSFADE_SEC);
+    musicSources.push({ player, startOffset, duration: buf.duration });
+
+    if (i === segmentBuffers.length - 1) {
+      totalMusicDuration = startOffset + buf.duration;
+    }
+  }
+
+  // ─── Voice texture overlay (Tone.js granular, mixed quietly) ───
+  const toneVoiceBuf = new Tone.ToneAudioBuffer().fromArray(
+    Array.from({ length: rawAudioBuffer.numberOfChannels }, (_, ch) => rawAudioBuffer.getChannelData(ch))
+  );
+
+  const voiceReverb = new Tone.Reverb({ decay: 6, wet: 0.7 }).connect(masterVol);
+  await voiceReverb.generate();
+
+  const voiceBandpass = new Tone.Filter({ frequency: 1200, type: 'bandpass', Q: 1.5 }).connect(voiceReverb);
+
+  const voiceGrain = new Tone.GrainPlayer({
+    url: toneVoiceBuf, grainSize: 0.08, overlap: 0.5, loop: true,
+    loopStart: 0, loopEnd: rawAudioBuffer.duration, playbackRate: 0.7, detune: 0,
+  }).connect(voiceBandpass);
+  voiceGrain.volume.value = -12; // quiet — seasoning, not main dish
+
+  // Store nodes for controls and cleanup
+  nodes = { masterVol, musicGain, voiceGrain, voiceBandpass, voiceReverb };
+  allDisposables = [...musicSources.map(s => s.player), voiceGrain, voiceBandpass, voiceReverb, musicGain, masterVol];
+
+  // ─── Start playback ───
+  const now = Tone.now() + 0.1;
+  playbackStartTime = now;
+
+  musicSources.forEach(s => {
+    s.player.start(now + s.startOffset);
+  });
+
+  // Voice texture plays throughout, with fade-out at the end
+  voiceGrain.start(now);
+
+  // Schedule voice fade-out when music ends
+  const voiceFadeStart = now + totalMusicDuration - 3;
+  voiceGrain.volume.setValueAtTime(-12, voiceFadeStart);
+  voiceGrain.volume.linearRampToValueAtTime(-60, voiceFadeStart + 3);
+
+  playing = true;
+  progressWrap.style.display = 'block';
+  audioControlsPanel.style.display = 'block';
+  statusEl.textContent = 'Playing...';
+
+  // Auto-stop
+  const totalPlayDuration = totalMusicDuration + 1;
+  setTimeout(() => { if (playing) stopPlayback(); }, totalPlayDuration * 1000);
+
+  // Progress bar
+  (function updateProgress() {
+    if (!playing) return;
+    const elapsed = Tone.now() - playbackStartTime;
+    const pct = Math.min(elapsed / totalMusicDuration, 1);
+    progressFill.style.width = (pct * 100) + '%';
+    const mins = Math.floor(elapsed / 60);
+    const secs = Math.floor(elapsed % 60);
+    const totalMins = Math.floor(totalMusicDuration / 60);
+    const totalSecs = Math.floor(totalMusicDuration % 60);
+    timeDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')} / ${totalMins}:${totalSecs.toString().padStart(2, '0')}`;
+    if (pct < 1) progressAnimId = requestAnimationFrame(updateProgress);
+  })();
+}
+
+function stopPlayback() {
+  playing = false;
+  cancelAnimationFrame(progressAnimId);
+
+  allDisposables.forEach(n => { try { if (n && n.dispose) n.dispose(); } catch(e) {} });
+  allDisposables = [];
+  nodes = {};
+
+  statusEl.textContent = rawAudioBuffer
+    ? `Recorded ${rawAudioBuffer.duration.toFixed(1)}s of audio. Ready to generate.`
+    : 'Press record and hum, sing, or speak for a few seconds.';
+  genProgressEl.textContent = '';
+  btnGenerate.disabled = !rawAudioBuffer;
+  btnGenerate.classList.remove('generating');
+  btnRecord.disabled = false;
+  btnStop.disabled = true;
+  progressFill.style.width = '0%';
+}
+
+// ─── LIVE CONTROL WIRING ───
+
+function wireSlider(id, valId, fmt, apply) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => { const v = parseFloat(sl.value); vl.textContent = fmt(v); apply(v); });
+}
+
+wireSlider('ctrl-music-vol', 'val-music-vol', v => v + ' dB',
+  v => { if (nodes.musicGain) nodes.musicGain.volume.value = v; });
+
+wireSlider('ctrl-voice-vol', 'val-voice-vol', v => v + ' dB',
+  v => { if (nodes.voiceGrain) nodes.voiceGrain.volume.value = v; });
+wireSlider('ctrl-voice-grain', 'val-voice-grain', v => Math.round(v * 1000) + 'ms',
+  v => { if (nodes.voiceGrain) nodes.voiceGrain.grainSize = v; });
+wireSlider('ctrl-voice-reverb', 'val-voice-reverb', v => Math.round(v * 100) + '%',
+  v => { if (nodes.voiceReverb) nodes.voiceReverb.wet.value = v; });
+
+wireSlider('ctrl-master-vol', 'val-master-vol', v => v + ' dB',
+  v => { if (nodes.masterVol) nodes.masterVol.volume.value = v; });
+</script>
+
+</body>
+</html>
