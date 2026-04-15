@@ -534,14 +534,31 @@ function getPentatonicNote(rootMidi, rangeLow, rangeHigh) {
 
 btnGenerate.addEventListener('click', async () => {
   if (!rawAudioBuffer) return;
-  // iOS CRITICAL: Tone.start() MUST happen synchronously in the tap handler
-  // before any awaits, or iOS will block audio playback.
+
+  // iOS: force audio session to "playback" mode (speaker, not earpiece)
+  // This is the proper API — getUserMedia sets it to "play-and-record" (earpiece)
+  if (navigator.audioSession) {
+    try { navigator.audioSession.type = 'playback'; } catch(e) {}
+  }
+
+  // iOS CRITICAL: Tone.start() MUST happen in the tap handler call stack
   await Tone.start();
-  // Also play a silent HTML audio to force iOS from earpiece to speaker mode
+
+  // Force speaker by playing a brief real tone through an HTML audio element
+  // This resets iOS audio routing from earpiece to speaker
   try {
-    const silence = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRBqIAAAAAAAAAAAAAAAAAAAA//tQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tQZB8P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==');
-    await silence.play();
+    const forceCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = forceCtx.createOscillator();
+    const gain = forceCtx.createGain();
+    gain.gain.value = 0.001; // inaudible
+    osc.connect(gain);
+    gain.connect(forceCtx.destination);
+    osc.start();
+    osc.stop(forceCtx.currentTime + 0.1);
+    await new Promise(r => setTimeout(r, 150));
+    forceCtx.close();
   } catch(e) {}
+
   stopSoundscape();
   await startSoundscape();
 });
@@ -549,10 +566,11 @@ btnGenerate.addEventListener('click', async () => {
 btnStop.addEventListener('click', () => stopSoundscape());
 
 async function startSoundscape() {
-  // Ensure audio context is running (iOS may have suspended it)
-  if (Tone.getContext().state !== 'running') {
-    await Tone.getContext().resume();
-  }
+  // Force a fresh Tone context (iOS may have inherited earpiece routing from recording)
+  try {
+    const ctx = Tone.getContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+  } catch(e) {}
   Tone.getTransport().stop();
   Tone.getTransport().cancel();
   Tone.getTransport().position = 0;
