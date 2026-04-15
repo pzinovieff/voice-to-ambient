@@ -534,24 +534,25 @@ function getPentatonicNote(rootMidi, rangeLow, rangeHigh) {
 
 btnGenerate.addEventListener('click', async () => {
   if (!rawAudioBuffer) return;
+  // iOS CRITICAL: Tone.start() MUST happen synchronously in the tap handler
+  // before any awaits, or iOS will block audio playback.
+  await Tone.start();
+  // Also play a silent HTML audio to force iOS from earpiece to speaker mode
+  try {
+    const silence = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRBqIAAAAAAAAAAAAAAAAAAAA//tQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tQZB8P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==');
+    await silence.play();
+  } catch(e) {}
   stopSoundscape();
   await startSoundscape();
 });
 
 btnStop.addEventListener('click', () => stopSoundscape());
 
-// iOS fix: after getUserMedia, audio routes to earpiece. Playing a silent
-// HTML audio element forces iOS back to speaker/media playback mode.
-function resetiOSAudioRoute() {
-  return new Promise(resolve => {
-    const silence = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRBqIAAAAAAAAAAAAAAAAAAAA//tQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tQZB8P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==');
-    silence.play().then(resolve).catch(resolve); // resolve even if play fails
-  });
-}
-
 async function startSoundscape() {
-  await resetiOSAudioRoute();
-  await Tone.start();
+  // Ensure audio context is running (iOS may have suspended it)
+  if (Tone.getContext().state !== 'running') {
+    await Tone.getContext().resume();
+  }
   Tone.getTransport().stop();
   Tone.getTransport().cancel();
   Tone.getTransport().position = 0;
