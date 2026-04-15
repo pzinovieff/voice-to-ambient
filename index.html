@@ -458,15 +458,17 @@ function buildScale(rootMidi, type) {
   return notes;
 }
 
-function getChordVoicing(rootMidi, index) {
+function getChordVoicing(rootMidi) {
   const voicings = [
-    [0, 7, 14],       // root + P5 + M9
-    [0, 5, 7],        // root + P4 + P5
-    [0, 3, 11],       // root + m3 + M7
-    [0, 7, 19],       // root + P5 + P5+oct
-    [-4, 0, 3],       // bVI: Ab C Eb relative
+    [0, 7, 14],       // root + P5 + M9 (open, vast)
+    [0, 5, 7],        // root + P4 + P5 (quartal, atmospheric)
+    [0, 3, 11],       // root + m3 + M7 (emotional tension)
+    [0, 7, 19],       // root + P5 + P5+oct (expansive)
+    [-4, 0, 3],       // bVI chord (dark, cinematic)
+    [0, 10, 17],      // sus4 spread (yearning)
+    [0, 2, 9],        // add9 no third (ambiguous, modern)
   ];
-  const v = voicings[index % voicings.length];
+  const v = voicings[Math.floor(Math.random() * voicings.length)];
   return v.map(interval => midiToName(rootMidi + interval));
 }
 
@@ -519,8 +521,8 @@ async function startSoundscape() {
 
   statusEl.textContent = 'Loading samples...';
 
-  // ─── Load samplers ───
-  // tonejs-instruments uses 's' for sharps in filenames: Ds2.mp3, Fs2.mp3, etc.
+  // ─── Load samplers with synth fallbacks ───
+  let samplesLoaded = false;
   const pianoSampler = new Tone.Sampler({
     urls: {
       'C2': 'C2.mp3', 'D#2': 'Ds2.mp3', 'F#2': 'Fs2.mp3', 'A2': 'A2.mp3',
@@ -529,25 +531,63 @@ async function startSoundscape() {
       'C5': 'C5.mp3',
     },
     baseUrl: `${SAMPLE_BASE}/piano/`,
+    release: 2,
   });
   const harpSampler = new Tone.Sampler({
     urls: {
-      'C4': 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', 'A4': 'A4.mp3',
-      'C5': 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', 'A5': 'A5.mp3',
+      'C4': 'C4.mp3', 'A4': 'A4.mp3',
+      'C5': 'C5.mp3', 'A5': 'A5.mp3',
       'C6': 'C6.mp3',
     },
     baseUrl: `${SAMPLE_BASE}/harp/`,
+    release: 2,
   });
 
-  // Wait for samples with a timeout so it doesn't hang forever
-  await Promise.race([
-    Tone.loaded(),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
-  ]).catch(e => { console.warn('Sample loading issue:', e.message); });
+  // Synth fallbacks if samples fail
+  const pianoFallback = new Tone.PolySynth(Tone.FMSynth, {
+    harmonicity: 3, modulationIndex: 0.8,
+    oscillator: { type: 'sine' },
+    envelope: { attack: 0.01, decay: 1.5, sustain: 0.2, release: 3 },
+    modulation: { type: 'triangle' },
+    modulationEnvelope: { attack: 0.01, decay: 0.3, sustain: 0.8, release: 2 },
+  });
+
+  const harpFallback = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 0.005, decay: 0.8, sustain: 0.1, release: 1.5 },
+  });
+
+  try {
+    await Promise.race([
+      Tone.loaded(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
+    ]);
+    samplesLoaded = true;
+    console.log('[Voice to Ambient] Samples loaded successfully');
+  } catch(e) {
+    samplesLoaded = false;
+    console.warn('[Voice to Ambient] Sample loading failed, using synth fallbacks:', e.message);
+  }
+
   statusEl.textContent = 'Building soundscape...';
 
+  // Unified play functions that route to sampler or fallback
+  const playPiano = (note, duration, time, velocity) => {
+    if (samplesLoaded) {
+      pianoSampler.triggerAttackRelease(note, duration, time, velocity);
+    } else {
+      pianoFallback.triggerAttackRelease(note, duration, time, velocity);
+    }
+  };
+  const playHarp = (note, duration, time, velocity) => {
+    if (samplesLoaded) {
+      harpSampler.triggerAttackRelease(note, duration, time, velocity);
+    } else {
+      harpFallback.triggerAttackRelease(note, duration, time, velocity);
+    }
+  };
+
   // ─── MASTER BUS ───
-  // EQ: HP 30Hz -> dip 400Hz -> shelf 8kHz -> compressor -> limiter -> volume -> destination
   const masterVol = new Tone.Volume(-6).toDestination();
   const limiter = new Tone.Limiter(-3).connect(masterVol);
   const masterComp = new Tone.Compressor({ threshold: -18, ratio: 3, attack: 0.1, release: 0.5 }).connect(limiter);
@@ -555,11 +595,10 @@ async function startSoundscape() {
   const eqMudDip = new Tone.Filter({ frequency: 400, type: 'peaking', gain: -2, Q: 0.5 }).connect(eqAir);
   const eqHP = new Tone.Filter({ frequency: 30, type: 'highpass' }).connect(eqMudDip);
 
-  // ─── SHARED EFFECTS BUS (send bus — fully wet) ───
+  // ─── SHARED EFFECTS BUS (fully wet send) ───
   const reverbBus = new Tone.Reverb({ decay: 8, preDelay: 0.04, wet: 1.0 });
   await reverbBus.generate();
 
-  // Ping-pong delay after reverb
   const delayL = new Tone.FeedbackDelay({ delayTime: 1.2, feedback: 0.25, wet: 1.0 });
   const delayR = new Tone.FeedbackDelay({ delayTime: 1.8, feedback: 0.25, wet: 1.0 });
   const delayFilter = new Tone.Filter({ frequency: 3000, type: 'lowpass' });
@@ -574,65 +613,61 @@ async function startSoundscape() {
   delayFilter.connect(delayMerge);
   delayMerge.connect(fxBusOut);
 
-  // ─── LAYER 1: VOICE GRANULAR TEXTURE ───
+  // ─── LAYER 1: VOICE GRANULAR TEXTURE (background — seasoning, not main dish) ───
   const toneBuffer = new Tone.ToneAudioBuffer().fromArray(
     Array.from({ length: rawAudioBuffer.numberOfChannels }, (_, ch) => rawAudioBuffer.getChannelData(ch))
   );
 
   const voiceBandpass = new Tone.Filter({ frequency: 1200, type: 'bandpass', Q: 1.5 }).connect(eqHP);
-  const voiceSend = new Tone.Gain(0.65).connect(reverbBus);
+  const voiceSend = new Tone.Gain(0.50).connect(reverbBus); // 50% to reverb
   voiceBandpass.connect(voiceSend);
 
   const voiceGrain = new Tone.GrainPlayer({
-    url: toneBuffer,
-    grainSize: 0.08,
-    overlap: 0.6,
-    loop: true,
-    loopStart: 0,
-    loopEnd: rawAudioBuffer.duration,
-    playbackRate: 0.7,
-    detune: 0,
+    url: toneBuffer, grainSize: 0.08, overlap: 0.6, loop: true,
+    loopStart: 0, loopEnd: rawAudioBuffer.duration, playbackRate: 0.7, detune: 0,
   }).connect(voiceBandpass);
-  voiceGrain.volume.value = -6;
+  voiceGrain.volume.value = -14; // -6dB below piano ref (piano at -8)
 
-  // ─── LAYER 2: SUB DRONE ───
+  // ─── LAYER 2: SUB DRONE (synthesised, not voice) ───
   const droneLPF = new Tone.Filter({ frequency: 200, type: 'lowpass' }).connect(eqHP);
-  const droneSend = new Tone.Gain(0.4).connect(reverbBus);
+  const droneSend = new Tone.Gain(0.20).connect(reverbBus); // 20% — too much reverb on low end = mud
   droneLPF.connect(droneSend);
 
   const droneSynth = new Tone.FMSynth({
     oscillator: { type: 'sine' },
-    harmonicity: 1.5,
-    modulationIndex: 0.5,
+    harmonicity: 1.5, modulationIndex: 0.5,
     envelope: { attack: 4, decay: 2, sustain: 0.8, release: 6 },
     modulation: { type: 'sine' },
-    modulationEnvelope: { attack: 2, decay: 1, sustain: 0.9, release: 4 },
+    modulationEnvelope: { attack: 3, decay: 2, sustain: 0.9, release: 8 },
   }).connect(droneLPF);
-  droneSynth.volume.value = -12;
+  droneSynth.volume.value = -20; // -12dB below piano ref
 
-  // Drone mod index LFO
   const droneLFO = new Tone.LFO({ frequency: 0.02, min: 0.3, max: 0.8, type: 'sine' });
   droneLFO.connect(droneSynth.modulationIndex);
 
-  // ─── LAYER 3: PIANO ───
+  // ─── LAYER 3: PIANO (the main musical element — loudest melodic layer) ───
   const pianoHP = new Tone.Filter({ frequency: 250, type: 'highpass' }).connect(eqHP);
   const pianoPresence = new Tone.Filter({ frequency: 3000, type: 'peaking', gain: 2, Q: 1.0 }).connect(pianoHP);
   const pianoPanner = new Tone.Panner(-0.2).connect(pianoPresence);
-  const pianoSendGain = new Tone.Gain(0.80).connect(reverbBus);
+  const pianoSendGain = new Tone.Gain(0.70).connect(reverbBus); // 70% to reverb
   pianoPanner.connect(pianoSendGain);
-  pianoSampler.connect(pianoPanner);
-  pianoSampler.volume.value = -8;
 
-  // ─── LAYER 4: HARP ───
+  const pianoOut = samplesLoaded ? pianoSampler : pianoFallback;
+  pianoOut.connect(pianoPanner);
+  pianoOut.volume.value = -8; // 0dB reference for mix hierarchy
+
+  // ─── LAYER 4: HARP (delicate sparkle) ───
   const harpHP = new Tone.Filter({ frequency: 400, type: 'highpass' }).connect(eqHP);
   const harpAir = new Tone.Filter({ frequency: 5000, type: 'highshelf', gain: 2 }).connect(harpHP);
   const harpPanner = new Tone.Panner(0.22).connect(harpAir);
-  const harpSendGain = new Tone.Gain(0.70).connect(reverbBus);
+  const harpSendGain = new Tone.Gain(0.75).connect(reverbBus); // 75% to reverb
   harpPanner.connect(harpSendGain);
-  harpSampler.connect(harpPanner);
-  harpSampler.volume.value = -10;
 
-  // ─── LAYER 5: VOCAL PAD ───
+  const harpOut = samplesLoaded ? harpSampler : harpFallback;
+  harpOut.connect(harpPanner);
+  harpOut.volume.value = -12; // -4dB below piano ref
+
+  // ─── LAYER 5: VOCAL PAD (distant choir wash) ───
   const padChorus = new Tone.Chorus({ frequency: 0.5, delayTime: 3.5, depth: 0.7, wet: 1.0 }).connect(eqHP);
   padChorus.start();
   const padFilter = new Tone.AutoFilter({
@@ -640,20 +675,19 @@ async function startSoundscape() {
     filter: { type: 'lowpass', Q: 0.5 },
   }).connect(padChorus);
   padFilter.start();
-  const padSendGain = new Tone.Gain(0.90).connect(reverbBus);
+  const padSendGain = new Tone.Gain(0.90).connect(reverbBus); // 90% to reverb
   padFilter.connect(padSendGain);
 
   const padA = new Tone.GrainPlayer({
     url: toneBuffer, grainSize: 0.4, overlap: 0.3, loop: true,
     loopStart: 0, loopEnd: rawAudioBuffer.duration, playbackRate: 0.4, detune: 0,
-  }).connect(padFilter);
-
+  });
   const padB = new Tone.GrainPlayer({
     url: toneBuffer, grainSize: 0.3, overlap: 0.25, loop: true,
     loopStart: 0, loopEnd: rawAudioBuffer.duration, playbackRate: 0.8, detune: 700,
-  }).connect(padFilter);
+  });
 
-  const padGain = new Tone.Volume(-14);
+  const padGain = new Tone.Volume(-22); // -14dB below piano ref
   padA.connect(padGain);
   padB.connect(padGain);
   padGain.connect(padFilter);
@@ -664,152 +698,162 @@ async function startSoundscape() {
     reverbBus, delayL, delayR, delayFilter, delayMerge, fxBusOut,
     voiceGrain, voiceBandpass, voiceSend,
     droneSynth, droneLPF, droneSend, droneLFO,
-    pianoSampler, pianoHP, pianoPresence, pianoPanner, pianoSendGain,
-    harpSampler, harpHP, harpAir, harpPanner, harpSendGain,
+    pianoSampler, pianoFallback, pianoHP, pianoPresence, pianoPanner, pianoSendGain,
+    harpSampler, harpFallback, harpHP, harpAir, harpPanner, harpSendGain,
     padA, padB, padGain, padChorus, padFilter, padSendGain,
   };
   allDisposables = Object.values(nodes);
+
+  // ─── PRE-GENERATE EVENT SCHEDULES ───
+  // Build arrays of {time, type, ...} events BEFORE scheduling, so we can check for overlaps
+
+  const pianoEvents = [];
+  const harpEvents = [];
+
+  // Piano events across sections
+  const genPianoEvents = (startSec, endSec, chordChance) => {
+    let t = startSec;
+    while (t < endSec) {
+      if (Math.random() >= 0.15) { // 15% skip
+        pianoEvents.push({
+          time: t,
+          isChord: Math.random() < chordChance,
+          velocity: 0.3 + Math.random() * 0.3,
+          duration: 4 + Math.random() * 4, // 4-8 seconds
+        });
+      }
+      t += 8 + Math.random() * 7;
+    }
+  };
+
+  genPianoEvents(18, 40, 0.3);   // Establishing: mostly single notes
+  genPianoEvents(40, 75, 0.6);   // Heart: mostly chords
+  genPianoEvents(75, 100, 0.25); // Thinning: back to single
+  genPianoEvents(100, 103, 0.3); // Last note
+
+  // Harp events — must not overlap with piano (3s gap)
+  const genHarpEvents = (startSec, endSec, intervalMin, intervalMax) => {
+    let t = startSec;
+    while (t < endSec) {
+      // Check distance from nearest piano event
+      const tooClose = pianoEvents.some(pe => Math.abs(pe.time - t) < 3);
+      if (!tooClose) {
+        harpEvents.push({
+          time: t,
+          isGliss: Math.random() < 0.25,
+          velocity: 0.2 + Math.random() * 0.3,
+        });
+      }
+      t += intervalMin + Math.random() * (intervalMax - intervalMin);
+    }
+  };
+
+  genHarpEvents(45, 75, 10, 18);    // Heart
+  genHarpEvents(75, 100, 15, 20);   // Thinning
+  genHarpEvents(100, 106, 20, 25);  // Last note
+
+  console.log(`[Voice to Ambient] Scheduled ${pianoEvents.length} piano events, ${harpEvents.length} harp events`);
+  console.log(`[Voice to Ambient] Root: ${midiToName(rootMidi)}, Piano root: ${midiToName(pianoRoot)}, Drone: ${midiToName(droneRoot)}`);
 
   // ─── MACRO TIMELINE via Tone.Transport ───
   const T = Tone.getTransport();
 
   // ── Section 1: Emergence (0:00 - 0:15) ──
   T.schedule(time => {
-    // Sub drone fades in
+    // Sub drone fades in from silence
     droneSynth.volume.setValueAtTime(-60, time);
-    droneSynth.volume.linearRampToValueAtTime(-12, time + 10);
+    droneSynth.volume.linearRampToValueAtTime(-20, time + 10);
     droneSynth.triggerAttack(midiToName(droneRoot), time);
-    droneLFO.start(time + 15); // LFO starts in section 2
+    droneLFO.start(time + 15);
 
-    // Voice grain starts sparse
-    voiceGrain.volume.setValueAtTime(-20, time);
-    voiceGrain.volume.linearRampToValueAtTime(-6, time + 15);
+    // Voice grain starts very quiet, fades up slowly (background texture)
+    voiceGrain.volume.setValueAtTime(-30, time);
+    voiceGrain.volume.linearRampToValueAtTime(-14, time + 15);
     voiceGrain.start(time);
 
     // Vocal pad barely perceptible
-    padGain.volume.setValueAtTime(-30, time);
-    padGain.volume.linearRampToValueAtTime(-14, time + 40);
+    padGain.volume.setValueAtTime(-40, time);
+    padGain.volume.linearRampToValueAtTime(-22, time + 40);
     padA.start(time);
     padB.start(time + 0.15);
 
     // Delay muted initially
     delayMerge.gain.setValueAtTime(0, time);
     delayMerge.gain.linearRampToValueAtTime(0.3, time + 20);
+
+    console.log('[Voice to Ambient] Section 1: Emergence started');
   }, 0);
 
-  // ── Section 2: Establishing (0:15 - 0:40) ──
-  // Piano enters with sparse single notes
-  let lastPianoTime = 0;
-  const schedulePianoNote = (startSec, endSec, chordChance) => {
-    let t = startSec;
-    let voicingIdx = 0;
-    while (t < endSec) {
-      const noteTime = t;
-      const useChord = Math.random() < chordChance;
-      const skip = Math.random() < 0.2; // 20% skip
-
-      if (!skip) {
-        T.schedule(time => {
-          if (!playing) return;
-          const velocity = 0.3 + Math.random() * 0.3; // 40-80 out of 127 ≈ 0.3-0.6
-          if (useChord) {
-            const chord = getChordVoicing(pianoRoot, voicingIdx);
-            chord.forEach((note, i) => {
-              const offset = i * (0.02 + Math.random() * 0.06); // 20-80ms humanise
-              pianoSampler.triggerAttackRelease(note, '4n', time + offset, velocity);
-            });
-          } else {
-            const scale = buildScale(pianoRoot, 'major').filter(n => n >= 48 && n <= 72);
-            const note = midiToName(scale[Math.floor(Math.random() * scale.length)]);
-            pianoSampler.triggerAttackRelease(note, '4n', time, velocity);
-          }
-          voicingIdx++;
-        }, noteTime);
-        lastPianoTime = noteTime;
+  // ── Schedule all piano events ──
+  pianoEvents.forEach(evt => {
+    T.schedule(time => {
+      if (!playing) return;
+      if (evt.isChord) {
+        const chord = getChordVoicing(pianoRoot);
+        chord.forEach((note, i) => {
+          const offset = i * (0.03 + Math.random() * 0.03); // 30-60ms humanise
+          playPiano(note, evt.duration, time + offset, evt.velocity);
+        });
+        console.log(`[Piano] ${evt.time.toFixed(1)}s: chord ${chord.join(', ')} vel=${evt.velocity.toFixed(2)}`);
+      } else {
+        const scale = buildScale(pianoRoot, 'major').filter(n => n >= 48 && n <= 72);
+        const note = midiToName(scale[Math.floor(Math.random() * scale.length)]);
+        playPiano(note, evt.duration, time, evt.velocity);
+        console.log(`[Piano] ${evt.time.toFixed(1)}s: note ${note} vel=${evt.velocity.toFixed(2)}`);
       }
-      t += 8 + Math.random() * 7; // 8-15 second intervals
-    }
-  };
+    }, evt.time);
+  });
 
-  // Piano: establishing = mostly single notes
-  schedulePianoNote(18, 40, 0.3);
-  // Piano: heart = mostly chords
-  schedulePianoNote(40, 75, 0.6);
-  // Piano: thinning = back to single notes
-  schedulePianoNote(75, 100, 0.25);
-  // Piano: last note ~102
-  schedulePianoNote(100, 103, 0.4);
-
-  // ── Harp: enters at 0:45 ──
-  const scheduleHarpNote = (startSec, endSec, intervalMin, intervalMax) => {
-    let t = startSec;
-    while (t < endSec) {
-      const noteTime = t;
-      const doGliss = Math.random() < 0.3; // 30% glissando gesture
-
-      T.schedule(time => {
-        if (!playing) return;
-        const velocity = 0.2 + Math.random() * 0.25;
-        if (doGliss) {
-          for (let i = 0; i < 3; i++) {
-            const note = getPentatonicNote(harpRoot, 60, 84);
-            harpSampler.triggerAttackRelease(note, '2n', time + i * (0.15 + Math.random() * 0.15), velocity);
-          }
-        } else {
+  // ── Schedule all harp events ──
+  harpEvents.forEach(evt => {
+    T.schedule(time => {
+      if (!playing) return;
+      if (evt.isGliss) {
+        for (let i = 0; i < 3; i++) {
           const note = getPentatonicNote(harpRoot, 60, 84);
-          harpSampler.triggerAttackRelease(note, '2n', time, velocity);
+          playHarp(note, 3, time + i * (0.15 + Math.random() * 0.05), evt.velocity);
         }
-      }, noteTime);
-
-      t += intervalMin + Math.random() * (intervalMax - intervalMin);
-    }
-  };
-
-  scheduleHarpNote(45, 75, 6, 12);    // Heart: regular
-  scheduleHarpNote(75, 100, 15, 20);   // Thinning: sparse
-  scheduleHarpNote(100, 106, 20, 25);  // Last note ~105
+        console.log(`[Harp] ${evt.time.toFixed(1)}s: glissando vel=${evt.velocity.toFixed(2)}`);
+      } else {
+        const note = getPentatonicNote(harpRoot, 60, 84);
+        playHarp(note, 3, time, evt.velocity);
+        console.log(`[Harp] ${evt.time.toFixed(1)}s: note ${note} vel=${evt.velocity.toFixed(2)}`);
+      }
+    }, evt.time);
+  });
 
   // ── Section 3: Heart (0:40 - 1:15) ──
   T.schedule(time => {
-    // Open up voice grain pitch slightly
     voiceGrain.playbackRate = 0.85;
+    console.log('[Voice to Ambient] Section 3: Heart');
   }, 40);
 
   // ── Section 4: Thinning (1:15 - 1:40) ──
   T.schedule(time => {
-    voiceGrain.volume.linearRampToValueAtTime(-10, time + 25);
+    voiceGrain.volume.linearRampToValueAtTime(-18, time + 25);
     voiceGrain.playbackRate = 0.7;
+    console.log('[Voice to Ambient] Section 4: Thinning');
   }, 75);
 
   // ── Section 5: Dissolution (1:40 - 2:00) ──
   T.schedule(time => {
-    // Voice grain fades
-    voiceGrain.volume.linearRampToValueAtTime(-40, time + 18);
-
-    // Vocal pad filter closes
+    voiceGrain.volume.linearRampToValueAtTime(-50, time + 18);
     padFilter.baseFrequency = 600;
-
-    // Drone fades out
     droneSynth.volume.linearRampToValueAtTime(-60, time + 15);
-
-    // Pad fades
-    padGain.volume.linearRampToValueAtTime(-40, time + 18);
+    padGain.volume.linearRampToValueAtTime(-50, time + 18);
+    console.log('[Voice to Ambient] Section 5: Dissolution');
   }, 100);
 
-  // Final cleanup schedule
-  T.schedule(() => {
-    if (playing) stopSoundscape();
-  }, DURATION + 3); // allow reverb tail
+  // Final cleanup
+  T.schedule(() => { if (playing) stopSoundscape(); }, DURATION + 3);
 
-  // ── Start transport and playback ──
+  // ── Start ──
   T.start();
   playing = true;
   progressWrap.style.display = 'block';
   audioControlsPanel.style.display = 'block';
   statusEl.textContent = 'Playing...';
 
-  // Progress animation
-  const startWall = Tone.now();
   (function updateProgress() {
     if (!playing) return;
     const elapsed = Tone.getTransport().seconds;
@@ -864,15 +908,15 @@ wireSlider('ctrl-drone-vol', 'val-drone-vol', v => v + ' dB',
 wireSlider('ctrl-drone-mod', 'val-drone-mod', v => v.toFixed(2),
   v => { if (nodes.droneSynth) nodes.droneSynth.modulationIndex.value = v; });
 
-// Piano
+// Piano (sampler or fallback)
 wireSlider('ctrl-piano-vol', 'val-piano-vol', v => v + ' dB',
-  v => { if (nodes.pianoSampler) nodes.pianoSampler.volume.value = v; });
+  v => { [nodes.pianoSampler, nodes.pianoFallback].forEach(n => { if (n) n.volume.value = v; }); });
 wireSlider('ctrl-piano-send', 'val-piano-send', v => Math.round(v * 100) + '%',
   v => { if (nodes.pianoSendGain) nodes.pianoSendGain.gain.value = v; });
 
-// Harp
+// Harp (sampler or fallback)
 wireSlider('ctrl-harp-vol', 'val-harp-vol', v => v + ' dB',
-  v => { if (nodes.harpSampler) nodes.harpSampler.volume.value = v; });
+  v => { [nodes.harpSampler, nodes.harpFallback].forEach(n => { if (n) n.volume.value = v; }); });
 wireSlider('ctrl-harp-send', 'val-harp-send', v => Math.round(v * 100) + '%',
   v => { if (nodes.harpSendGain) nodes.harpSendGain.gain.value = v; });
 
