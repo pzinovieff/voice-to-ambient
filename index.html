@@ -8,74 +8,85 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #0a0a0f;
-  color: #b0b0c0;
-  font-family: 'Courier New', monospace;
+  background: #f5f5f7;
+  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
-  padding: 2rem 1rem;
+  padding: 3rem 1rem;
 }
 h1 {
-  font-size: 1.4rem;
-  color: #6a6a8a;
-  letter-spacing: 0.3em;
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: #1a1a2a;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+#subtitle {
+  font-size: 0.8rem;
+  color: #888;
+  margin-bottom: 2rem;
+  font-weight: 400;
 }
 #status {
   font-size: 0.85rem;
-  color: #5a5a7a;
+  color: #666;
   margin-bottom: 1rem;
   min-height: 1.2em;
 }
 .controls {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.2rem;
 }
 button {
-  background: #1a1a2e;
-  color: #8888aa;
-  border: 1px solid #2a2a4a;
-  padding: 0.7rem 1.5rem;
+  background: #fff;
+  color: #444;
+  border: 1px solid #d0d0d8;
+  padding: 0.6rem 1.4rem;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  letter-spacing: 0.1em;
-  transition: all 0.2s;
+  border-radius: 6px;
+  transition: all 0.15s;
+  font-weight: 500;
 }
 button:hover:not(:disabled) {
-  background: #22223a;
-  border-color: #4a4a6a;
-  color: #aaaacc;
+  background: #f0f0f4;
+  border-color: #aaa;
+  color: #222;
 }
 button:disabled {
-  opacity: 0.3;
+  opacity: 0.35;
   cursor: default;
 }
 button.recording {
-  border-color: #6a2a2a;
-  color: #cc6666;
+  background: #fff5f5;
+  border-color: #e0a0a0;
+  color: #c44;
   animation: pulse 1.5s ease-in-out infinite;
 }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.6; }
 }
 #level-meter {
   width: 300px;
-  height: 4px;
-  background: #1a1a2e;
+  height: 3px;
+  background: #e0e0e6;
   margin-bottom: 1rem;
   overflow: hidden;
+  border-radius: 2px;
 }
 #level-fill {
   height: 100%;
   width: 0%;
-  background: #4a4a6a;
+  background: #8888bb;
   transition: width 0.05s;
+  border-radius: 2px;
 }
 #progress-wrap {
   width: 300px;
@@ -85,49 +96,78 @@ button.recording {
 #progress-bar {
   width: 100%;
   height: 3px;
-  background: #1a1a2e;
+  background: #e0e0e6;
   margin-bottom: 0.5rem;
   overflow: hidden;
+  border-radius: 2px;
 }
 #progress-fill {
   height: 100%;
   width: 0%;
-  background: #4a4a6a;
+  background: #8888bb;
   transition: width 0.25s linear;
+  border-radius: 2px;
 }
 #time-display {
   font-size: 0.75rem;
-  color: #4a4a6a;
+  color: #999;
   text-align: center;
 }
 #detected-info {
   font-size: 0.7rem;
-  color: #3a3a5a;
+  color: #aaa;
   margin-bottom: 1rem;
   min-height: 1em;
 }
 
-/* ─── Audio Controls Panel ─── */
-#audio-controls {
+/* ─── Audio Controls Expander ─── */
+#audio-controls-wrap {
   width: 100%;
   max-width: 600px;
-  border: 1px solid #1a1a2e;
-  padding: 1.2rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   display: none;
 }
-#audio-controls h2 {
-  font-size: 0.75rem;
-  color: #4a4a6a;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-bottom: 1rem;
-  text-align: center;
+details.ctrl-expander {
+  border: 1px solid #e0e0e6;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+details.ctrl-expander summary {
+  padding: 0.7rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+details.ctrl-expander summary::-webkit-details-marker { display: none; }
+details.ctrl-expander summary::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid #999;
+  border-bottom: 1.5px solid #999;
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+details.ctrl-expander[open] summary::before {
+  transform: rotate(45deg);
+}
+details.ctrl-expander summary:hover { color: #333; }
+.ctrl-inner {
+  padding: 0.5rem 1rem 1rem;
 }
 .ctrl-section {
-  margin-bottom: 1rem;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid #111122;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #f0f0f4;
 }
 .ctrl-section:last-child {
   margin-bottom: 0;
@@ -135,22 +175,23 @@ button.recording {
   border-bottom: none;
 }
 .ctrl-section h3 {
-  font-size: 0.7rem;
-  color: #5a5a7a;
-  letter-spacing: 0.15em;
+  font-size: 0.65rem;
+  color: #999;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
 }
 .ctrl-row {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
 }
 .ctrl-row label {
   font-size: 0.7rem;
-  color: #6a6a8a;
-  width: 100px;
+  color: #777;
+  width: 90px;
   flex-shrink: 0;
   text-align: right;
 }
@@ -159,26 +200,27 @@ button.recording {
   height: 3px;
   -webkit-appearance: none;
   appearance: none;
-  background: #1a1a2e;
+  background: #e0e0e6;
   outline: none;
   border-radius: 2px;
 }
 .ctrl-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #4a4a6a;
+  background: #fff;
+  border: 2px solid #aab;
   cursor: pointer;
-  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 .ctrl-row input[type="range"]::-webkit-slider-thumb:hover {
-  background: #6a6a8a;
+  border-color: #778;
 }
 .ctrl-row .val {
   font-size: 0.65rem;
-  color: #4a4a6a;
+  color: #999;
   width: 50px;
   text-align: left;
   flex-shrink: 0;
@@ -188,6 +230,7 @@ button.recording {
 <body>
 
 <h1>Voice to Ambient</h1>
+<div id="subtitle">Record your voice. Transform it into a soundscape.</div>
 <div id="status">Press record and hum, sing, or speak for a few seconds.</div>
 <div id="detected-info"></div>
 <div id="level-meter"><div id="level-fill"></div></div>
@@ -201,8 +244,10 @@ button.recording {
   <div id="time-display">0:00 / 2:00</div>
 </div>
 
-<div id="audio-controls">
-  <h2>Audio Controls</h2>
+<div id="audio-controls-wrap">
+<details class="ctrl-expander">
+  <summary>Additional controls</summary>
+  <div class="ctrl-inner">
 
   <div class="ctrl-section">
     <h3>Voice Texture</h3>
@@ -306,6 +351,9 @@ button.recording {
       <span class="val" id="val-master-vol">-6 dB</span>
     </div>
   </div>
+
+  </div>
+</details>
 </div>
 
 <script>
@@ -320,7 +368,7 @@ const btnStop = document.getElementById('btn-stop-playback');
 const progressWrap = document.getElementById('progress-wrap');
 const progressFill = document.getElementById('progress-fill');
 const timeDisplay = document.getElementById('time-display');
-const audioControlsPanel = document.getElementById('audio-controls');
+const audioControlsPanel = document.getElementById('audio-controls-wrap');
 const detectedInfoEl = document.getElementById('detected-info');
 
 let nativeCtx = null;
