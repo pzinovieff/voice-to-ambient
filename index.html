@@ -428,6 +428,11 @@ async function startRecording() {
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  // Close the native AudioContext to release iOS audio session from "voice" mode
+  if (nativeCtx && nativeCtx.state !== 'closed') {
+    nativeCtx.close().catch(() => {});
+    nativeCtx = null;
+  }
   cancelAnimationFrame(levelAnimId);
   isRecording = false;
   btnRecord.textContent = 'Record';
@@ -535,7 +540,17 @@ btnGenerate.addEventListener('click', async () => {
 
 btnStop.addEventListener('click', () => stopSoundscape());
 
+// iOS fix: after getUserMedia, audio routes to earpiece. Playing a silent
+// HTML audio element forces iOS back to speaker/media playback mode.
+function resetiOSAudioRoute() {
+  return new Promise(resolve => {
+    const silence = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRBqIAAAAAAAAAAAAAAAAAAAA//tQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tQZB8P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==');
+    silence.play().then(resolve).catch(resolve); // resolve even if play fails
+  });
+}
+
 async function startSoundscape() {
+  await resetiOSAudioRoute();
   await Tone.start();
   Tone.getTransport().stop();
   Tone.getTransport().cancel();
