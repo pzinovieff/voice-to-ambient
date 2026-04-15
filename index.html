@@ -100,6 +100,12 @@ button.recording {
   color: #4a4a6a;
   text-align: center;
 }
+#detected-info {
+  font-size: 0.7rem;
+  color: #3a3a5a;
+  margin-bottom: 1rem;
+  min-height: 1em;
+}
 
 /* ─── Audio Controls Panel ─── */
 #audio-controls {
@@ -183,6 +189,7 @@ button.recording {
 
 <h1>Voice to Ambient</h1>
 <div id="status">Press record and hum, sing, or speak for a few seconds.</div>
+<div id="detected-info"></div>
 <div id="level-meter"><div id="level-fill"></div></div>
 <div class="controls">
   <button id="btn-record">Record</button>
@@ -198,111 +205,96 @@ button.recording {
   <h2>Audio Controls</h2>
 
   <div class="ctrl-section">
-    <h3>Reverb</h3>
+    <h3>Voice Texture</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-voice-vol" min="-30" max="0" step="1" value="-6">
+      <span class="val" id="val-voice-vol">-6 dB</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Grain Size</label>
+      <input type="range" id="ctrl-voice-grain" min="0.03" max="0.2" step="0.005" value="0.08">
+      <span class="val" id="val-voice-grain">80ms</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Reverb Send</label>
+      <input type="range" id="ctrl-voice-send" min="0" max="1" step="0.01" value="0.65">
+      <span class="val" id="val-voice-send">65%</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Sub Drone</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-drone-vol" min="-30" max="0" step="1" value="-12">
+      <span class="val" id="val-drone-vol">-12 dB</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Mod Index</label>
+      <input type="range" id="ctrl-drone-mod" min="0.1" max="2" step="0.05" value="0.5">
+      <span class="val" id="val-drone-mod">0.50</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Piano</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-piano-vol" min="-30" max="0" step="1" value="-8">
+      <span class="val" id="val-piano-vol">-8 dB</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Reverb Send</label>
+      <input type="range" id="ctrl-piano-send" min="0" max="1" step="0.01" value="0.80">
+      <span class="val" id="val-piano-send">80%</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Harp</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-harp-vol" min="-30" max="0" step="1" value="-10">
+      <span class="val" id="val-harp-vol">-10 dB</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Reverb Send</label>
+      <input type="range" id="ctrl-harp-send" min="0" max="1" step="0.01" value="0.70">
+      <span class="val" id="val-harp-send">70%</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Vocal Pad</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-pad-vol" min="-30" max="0" step="1" value="-14">
+      <span class="val" id="val-pad-vol">-14 dB</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Filter</label>
+      <input type="range" id="ctrl-pad-filter" min="200" max="4000" step="50" value="2000">
+      <span class="val" id="val-pad-filter">2000</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Reverb Send</label>
+      <input type="range" id="ctrl-pad-send" min="0" max="1" step="0.01" value="0.90">
+      <span class="val" id="val-pad-send">90%</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Reverb Bus</h3>
     <div class="ctrl-row">
       <label>Decay</label>
-      <input type="range" id="ctrl-reverb-decay" min="1" max="15" step="0.5" value="8">
+      <input type="range" id="ctrl-reverb-decay" min="2" max="15" step="0.5" value="8">
       <span class="val" id="val-reverb-decay">8.0s</span>
     </div>
     <div class="ctrl-row">
-      <label>Mix</label>
-      <input type="range" id="ctrl-reverb-wet" min="0" max="1" step="0.01" value="0.75">
-      <span class="val" id="val-reverb-wet">75%</span>
-    </div>
-  </div>
-
-  <div class="ctrl-section">
-    <h3>Filter</h3>
-    <div class="ctrl-row">
-      <label>Cutoff</label>
-      <input type="range" id="ctrl-filter-freq" min="100" max="8000" step="10" value="3000">
-      <span class="val" id="val-filter-freq">3000</span>
-    </div>
-    <div class="ctrl-row">
-      <label>LFO Speed</label>
-      <input type="range" id="ctrl-filter-lfo" min="0.01" max="1" step="0.01" value="0.08">
-      <span class="val" id="val-filter-lfo">0.08</span>
-    </div>
-    <div class="ctrl-row">
-      <label>LFO Depth</label>
-      <input type="range" id="ctrl-filter-depth" min="0" max="4000" step="50" value="2000">
-      <span class="val" id="val-filter-depth">2000</span>
-    </div>
-  </div>
-
-  <div class="ctrl-section">
-    <h3>Grains &mdash; Low</h3>
-    <div class="ctrl-row">
-      <label>Size</label>
-      <input type="range" id="ctrl-low-size" min="0.2" max="4" step="0.1" value="2">
-      <span class="val" id="val-low-size">2.0s</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Detune</label>
-      <input type="range" id="ctrl-low-detune" min="-2400" max="0" step="50" value="-1200">
-      <span class="val" id="val-low-detune">-1200</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Volume</label>
-      <input type="range" id="ctrl-low-vol" min="-40" max="0" step="1" value="-12">
-      <span class="val" id="val-low-vol">-12 dB</span>
-    </div>
-  </div>
-
-  <div class="ctrl-section">
-    <h3>Grains &mdash; Mid</h3>
-    <div class="ctrl-row">
-      <label>Size</label>
-      <input type="range" id="ctrl-mid-size" min="0.1" max="3" step="0.1" value="1">
-      <span class="val" id="val-mid-size">1.0s</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Detune</label>
-      <input type="range" id="ctrl-mid-detune" min="-1200" max="1200" step="50" value="0">
-      <span class="val" id="val-mid-detune">0</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Volume</label>
-      <input type="range" id="ctrl-mid-vol" min="-40" max="0" step="1" value="-10">
-      <span class="val" id="val-mid-vol">-10 dB</span>
-    </div>
-  </div>
-
-  <div class="ctrl-section">
-    <h3>Grains &mdash; High</h3>
-    <div class="ctrl-row">
-      <label>Size</label>
-      <input type="range" id="ctrl-high-size" min="0.05" max="2" step="0.05" value="0.5">
-      <span class="val" id="val-high-size">0.5s</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Detune</label>
-      <input type="range" id="ctrl-high-detune" min="0" max="2400" step="50" value="800">
-      <span class="val" id="val-high-detune">800</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Volume</label>
-      <input type="range" id="ctrl-high-vol" min="-40" max="0" step="1" value="-16">
-      <span class="val" id="val-high-vol">-16 dB</span>
-    </div>
-  </div>
-
-  <div class="ctrl-section">
-    <h3>Chorus</h3>
-    <div class="ctrl-row">
-      <label>Depth</label>
-      <input type="range" id="ctrl-chorus-depth" min="0" max="1" step="0.01" value="0.5">
-      <span class="val" id="val-chorus-depth">0.50</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Frequency</label>
-      <input type="range" id="ctrl-chorus-freq" min="0.1" max="4" step="0.1" value="0.4">
-      <span class="val" id="val-chorus-freq">0.4 Hz</span>
-    </div>
-    <div class="ctrl-row">
-      <label>Mix</label>
-      <input type="range" id="ctrl-chorus-wet" min="0" max="1" step="0.01" value="0.3">
-      <span class="val" id="val-chorus-wet">30%</span>
+      <label>Delay Mix</label>
+      <input type="range" id="ctrl-delay-wet" min="0" max="0.6" step="0.01" value="0.3">
+      <span class="val" id="val-delay-wet">30%</span>
     </div>
   </div>
 
@@ -317,7 +309,8 @@ button.recording {
 </div>
 
 <script>
-const SOUNDSCAPE_DURATION = 120;
+const DURATION = 120;
+const SAMPLE_BASE = 'https://nbrosowsky.github.io/tonejs-instruments/samples';
 
 const statusEl = document.getElementById('status');
 const levelFill = document.getElementById('level-fill');
@@ -328,10 +321,10 @@ const progressWrap = document.getElementById('progress-wrap');
 const progressFill = document.getElementById('progress-fill');
 const timeDisplay = document.getElementById('time-display');
 const audioControlsPanel = document.getElementById('audio-controls');
+const detectedInfoEl = document.getElementById('detected-info');
 
-let nativeCtx = null; // for recording only
-let recordedBuffer = null; // Tone.ToneAudioBuffer
-let rawAudioBuffer = null; // raw AudioBuffer for recording
+let nativeCtx = null;
+let rawAudioBuffer = null;
 let isRecording = false;
 let mediaStream = null;
 let mediaRecorder = null;
@@ -340,53 +333,39 @@ let analyserNode = null;
 let levelAnimId = null;
 
 // Soundscape state
-let soundscapePlaying = false;
-let soundscapeStartTime = 0;
+let playing = false;
 let progressAnimId = null;
-let stopTimeoutId = null;
+let allDisposables = [];
 
-// Tone.js nodes (persistent while playing)
-let grainLow = null, grainMid = null, grainHigh = null;
-let reverb = null, autoFilter = null, chorus = null, compressor = null, masterVol = null;
-let fadeGain = null;
+// Live-adjustable node references
+let nodes = {};
 
-// ─── RECORDING (uses native API — Tone.js doesn't need to be started yet) ───
+// ─── RECORDING ───
 
 btnRecord.addEventListener('click', async () => {
-  if (isRecording) {
-    stopRecording();
-  } else {
-    await startRecording();
-  }
+  if (isRecording) stopRecording(); else await startRecording();
 });
 
 async function startRecording() {
   try {
-    if (!nativeCtx) {
-      nativeCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (!nativeCtx) nativeCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (nativeCtx.state === 'suspended') await nativeCtx.resume();
-
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(mediaStream);
     recordedChunks = [];
-
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.onstop = async () => {
       const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-      const arrayBuf = await blob.arrayBuffer();
-      rawAudioBuffer = await nativeCtx.decodeAudioData(arrayBuf);
+      rawAudioBuffer = await nativeCtx.decodeAudioData(await blob.arrayBuffer());
       statusEl.textContent = `Recorded ${rawAudioBuffer.duration.toFixed(1)}s of audio. Ready to generate.`;
       btnGenerate.disabled = false;
       levelFill.style.width = '0%';
     };
-
     const source = nativeCtx.createMediaStreamSource(mediaStream);
     analyserNode = nativeCtx.createAnalyser();
     analyserNode.fftSize = 256;
     source.connect(analyserNode);
     startLevelMeter();
-
     mediaRecorder.start();
     isRecording = true;
     btnRecord.textContent = 'Stop Recording';
@@ -409,30 +388,94 @@ function stopRecording() {
 
 function startLevelMeter() {
   const data = new Uint8Array(analyserNode.fftSize);
-  function update() {
+  (function update() {
     analyserNode.getByteTimeDomainData(data);
     let max = 0;
-    for (let i = 0; i < data.length; i++) {
-      const v = Math.abs(data[i] - 128) / 128;
-      if (v > max) max = v;
-    }
+    for (let i = 0; i < data.length; i++) { const v = Math.abs(data[i] - 128) / 128; if (v > max) max = v; }
     levelFill.style.width = (max * 100) + '%';
     levelAnimId = requestAnimationFrame(update);
+  })();
+}
+
+// ─── VOICE ANALYSIS ───
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+function detectPitch(buffer) {
+  const data = buffer.getChannelData(0);
+  const sampleRate = buffer.sampleRate;
+  // Autocorrelation on a chunk from the middle of the recording
+  const chunkSize = Math.min(8192, data.length);
+  const start = Math.floor((data.length - chunkSize) / 2);
+  const chunk = data.slice(start, start + chunkSize);
+
+  // Normalise
+  let maxVal = 0;
+  for (let i = 0; i < chunk.length; i++) if (Math.abs(chunk[i]) > maxVal) maxVal = Math.abs(chunk[i]);
+  if (maxVal < 0.01) return null; // too quiet
+  for (let i = 0; i < chunk.length; i++) chunk[i] /= maxVal;
+
+  // Autocorrelation
+  const minLag = Math.floor(sampleRate / 600); // max 600Hz
+  const maxLag = Math.floor(sampleRate / 50);  // min 50Hz
+  let bestLag = 0, bestCorr = 0;
+  for (let lag = minLag; lag <= maxLag && lag < chunk.length / 2; lag++) {
+    let corr = 0;
+    for (let i = 0; i < chunk.length / 2; i++) {
+      corr += chunk[i] * chunk[i + lag];
+    }
+    if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
   }
-  update();
+
+  if (bestLag === 0 || bestCorr < chunk.length / 8) return null;
+  return sampleRate / bestLag;
 }
 
-// ─── CONVERT NATIVE AUDIOBUFFER TO TONE BUFFER ───
+function hzToMidi(hz) { return Math.round(12 * Math.log2(hz / 440) + 69); }
+function midiToHz(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
+function midiToName(midi) { return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1); }
 
-function audioBufferToToneBuffer(audioBuffer) {
-  return new Tone.ToneAudioBuffer().fromArray(
-    Array.from({ length: audioBuffer.numberOfChannels }, (_, ch) =>
-      audioBuffer.getChannelData(ch)
-    )
-  );
+function calculateRMS(buffer) {
+  const data = buffer.getChannelData(0);
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+  return Math.sqrt(sum / data.length);
 }
 
-// ─── SOUNDSCAPE ───
+// ─── MUSIC THEORY HELPERS ───
+
+function buildScale(rootMidi, type) {
+  // Returns MIDI notes for 2 octaves of a scale
+  const intervals = type === 'pentatonic'
+    ? [0, 2, 4, 7, 9]
+    : [0, 2, 4, 5, 7, 9, 11]; // major
+  const notes = [];
+  for (let oct = 0; oct < 3; oct++) {
+    for (const iv of intervals) {
+      notes.push(rootMidi + oct * 12 + iv);
+    }
+  }
+  return notes;
+}
+
+function getChordVoicing(rootMidi, index) {
+  const voicings = [
+    [0, 7, 14],       // root + P5 + M9
+    [0, 5, 7],        // root + P4 + P5
+    [0, 3, 11],       // root + m3 + M7
+    [0, 7, 19],       // root + P5 + P5+oct
+    [-4, 0, 3],       // bVI: Ab C Eb relative
+  ];
+  const v = voicings[index % voicings.length];
+  return v.map(interval => midiToName(rootMidi + interval));
+}
+
+function getPentatonicNote(rootMidi, rangeLow, rangeHigh) {
+  const scale = buildScale(rootMidi, 'pentatonic').filter(n => n >= rangeLow && n <= rangeHigh);
+  return midiToName(scale[Math.floor(Math.random() * scale.length)]);
+}
+
+// ─── SOUNDSCAPE ENGINE ───
 
 btnGenerate.addEventListener('click', async () => {
   if (!rawAudioBuffer) return;
@@ -440,151 +483,343 @@ btnGenerate.addEventListener('click', async () => {
   await startSoundscape();
 });
 
-btnStop.addEventListener('click', () => {
-  stopSoundscape();
-});
+btnStop.addEventListener('click', () => stopSoundscape());
 
 async function startSoundscape() {
   await Tone.start();
+  Tone.getTransport().stop();
+  Tone.getTransport().cancel();
+  Tone.getTransport().position = 0;
+  Tone.getTransport().bpm.value = 60;
 
-  statusEl.textContent = 'Generating...';
+  statusEl.textContent = 'Analysing voice...';
   btnGenerate.disabled = true;
   btnRecord.disabled = true;
   btnStop.disabled = false;
-  progressWrap.style.display = 'block';
-  audioControlsPanel.style.display = 'block';
 
-  const toneBuffer = audioBufferToToneBuffer(rawAudioBuffer);
+  // ─── Voice analysis ───
+  const detectedHz = detectPitch(rawAudioBuffer);
+  const rms = calculateRMS(rawAudioBuffer);
+  let rootMidi;
+  if (detectedHz && detectedHz > 50 && detectedHz < 600) {
+    rootMidi = hzToMidi(detectedHz);
+    detectedInfoEl.textContent = `Detected: ${midiToName(rootMidi)} (${Math.round(detectedHz)}Hz) | RMS: ${rms.toFixed(3)}`;
+  } else {
+    rootMidi = 48; // C3 fallback
+    detectedInfoEl.textContent = `No clear pitch detected, using C3 | RMS: ${rms.toFixed(3)}`;
+  }
 
-  // ─── Effect chain ───
-  // GrainPlayers -> fadeGain -> autoFilter -> reverb -> chorus -> compressor -> masterVol -> destination
+  // Scale RMS for output level (quiet voice = more intimate)
+  const rmsGain = Math.max(0.4, Math.min(1.0, rms * 8));
 
-  masterVol = new Tone.Volume(-6).toDestination();
+  // Root notes for different layers
+  const droneRoot = rootMidi - 24; // 2 octaves down
+  const pianoRoot = rootMidi;      // same octave
+  const harpRoot = rootMidi + 12;  // octave up
 
-  compressor = new Tone.Compressor({
-    threshold: -12,
-    ratio: 4,
-    attack: 0.03,
-    release: 0.25,
-  }).connect(masterVol);
+  statusEl.textContent = 'Loading samples...';
 
-  chorus = new Tone.Chorus({
-    frequency: 0.4,
-    delayTime: 12,
-    depth: 0.5,
-    wet: 0.3,
-  }).connect(compressor);
-  chorus.start();
+  // ─── Load samplers ───
+  const pianoNotes = ['C2','Eb2','Gb2','A2','C3','Eb3','Gb3','A3','C4','Eb4','Gb4','A4','C5'];
+  const harpNotes = ['C4','Eb4','Gb4','A4','C5','Eb5','Gb5','A5','C6'];
 
-  reverb = new Tone.Reverb({
-    decay: 8,
-    wet: 0.75,
-    preDelay: 0.1,
-  }).connect(chorus);
-  await reverb.generate();
+  const pianoUrls = {};
+  pianoNotes.forEach(n => { pianoUrls[n] = `${SAMPLE_BASE}/piano/${n.replace('#','%23')}.mp3`; });
+  const harpUrls = {};
+  harpNotes.forEach(n => { harpUrls[n] = `${SAMPLE_BASE}/harp/${n.replace('#','%23')}.mp3`; });
 
-  autoFilter = new Tone.AutoFilter({
-    frequency: 0.08,
-    baseFrequency: 3000,
-    octaves: 2.5,
-    type: 'sine',
-    depth: 1,
-    wet: 1,
-    filter: { type: 'lowpass', Q: 0.5 },
-  }).connect(reverb);
-  autoFilter.start();
+  const pianoSampler = new Tone.Sampler({ urls: pianoUrls });
+  const harpSampler = new Tone.Sampler({ urls: harpUrls });
 
-  fadeGain = new Tone.Gain(0).connect(autoFilter);
+  await Tone.loaded();
+  statusEl.textContent = 'Building soundscape...';
 
-  // ─── Three grain layers ───
-  grainLow = new Tone.GrainPlayer({
+  // ─── MASTER BUS ───
+  // EQ: HP 30Hz -> dip 400Hz -> shelf 8kHz -> compressor -> limiter -> volume -> destination
+  const masterVol = new Tone.Volume(-6).toDestination();
+  const limiter = new Tone.Limiter(-3).connect(masterVol);
+  const masterComp = new Tone.Compressor({ threshold: -18, ratio: 3, attack: 0.1, release: 0.5 }).connect(limiter);
+  const eqAir = new Tone.Filter({ frequency: 8000, type: 'highshelf', gain: 1.5 }).connect(masterComp);
+  const eqMudDip = new Tone.Filter({ frequency: 400, type: 'peaking', gain: -2, Q: 0.5 }).connect(eqAir);
+  const eqHP = new Tone.Filter({ frequency: 30, type: 'highpass' }).connect(eqMudDip);
+
+  // ─── SHARED EFFECTS BUS (send bus — fully wet) ───
+  const reverbBus = new Tone.Reverb({ decay: 8, preDelay: 0.04, wet: 1.0 });
+  await reverbBus.generate();
+
+  // Ping-pong delay after reverb
+  const delayL = new Tone.FeedbackDelay({ delayTime: 1.2, feedback: 0.25, wet: 1.0 });
+  const delayR = new Tone.FeedbackDelay({ delayTime: 1.8, feedback: 0.25, wet: 1.0 });
+  const delayFilter = new Tone.Filter({ frequency: 3000, type: 'lowpass' });
+  const delayMerge = new Tone.Gain(0.3);
+  const fxBusOut = new Tone.Gain(1).connect(eqHP);
+
+  reverbBus.connect(fxBusOut);
+  reverbBus.connect(delayL);
+  reverbBus.connect(delayR);
+  delayL.connect(delayFilter);
+  delayR.connect(delayFilter);
+  delayFilter.connect(delayMerge);
+  delayMerge.connect(fxBusOut);
+
+  // ─── LAYER 1: VOICE GRANULAR TEXTURE ───
+  const toneBuffer = new Tone.ToneAudioBuffer().fromArray(
+    Array.from({ length: rawAudioBuffer.numberOfChannels }, (_, ch) => rawAudioBuffer.getChannelData(ch))
+  );
+
+  const voiceBandpass = new Tone.Filter({ frequency: 1200, type: 'bandpass', Q: 1.5 }).connect(eqHP);
+  const voiceSend = new Tone.Gain(0.65).connect(reverbBus);
+  voiceBandpass.connect(voiceSend);
+
+  const voiceGrain = new Tone.GrainPlayer({
     url: toneBuffer,
-    grainSize: 2,
-    overlap: 0.7,
-    loop: true,
-    loopStart: 0,
-    loopEnd: rawAudioBuffer.duration,
-    playbackRate: 1,
-    detune: -1200,
-    reverse: false,
-  }).connect(fadeGain);
-  grainLow.volume.value = -12;
-
-  grainMid = new Tone.GrainPlayer({
-    url: toneBuffer,
-    grainSize: 1,
+    grainSize: 0.08,
     overlap: 0.6,
     loop: true,
     loopStart: 0,
     loopEnd: rawAudioBuffer.duration,
-    playbackRate: 1,
+    playbackRate: 0.7,
     detune: 0,
-    reverse: false,
-  }).connect(fadeGain);
-  grainMid.volume.value = -10;
+  }).connect(voiceBandpass);
+  voiceGrain.volume.value = -6;
 
-  grainHigh = new Tone.GrainPlayer({
-    url: toneBuffer,
-    grainSize: 0.5,
-    overlap: 0.5,
-    loop: true,
-    loopStart: 0,
-    loopEnd: rawAudioBuffer.duration,
-    playbackRate: 1,
-    detune: 800,
-    reverse: false,
-  }).connect(fadeGain);
-  grainHigh.volume.value = -16;
+  // ─── LAYER 2: SUB DRONE ───
+  const droneLPF = new Tone.Filter({ frequency: 200, type: 'lowpass' }).connect(eqHP);
+  const droneSend = new Tone.Gain(0.4).connect(reverbBus);
+  droneLPF.connect(droneSend);
 
-  // Start all three layers
-  const now = Tone.now();
-  grainLow.start(now);
-  grainMid.start(now + 0.1);  // slight offset to avoid phase alignment
-  grainHigh.start(now + 0.2);
+  const droneSynth = new Tone.FMSynth({
+    oscillator: { type: 'sine' },
+    harmonicity: 1.5,
+    modulationIndex: 0.5,
+    envelope: { attack: 4, decay: 2, sustain: 0.8, release: 6 },
+    modulation: { type: 'sine' },
+    modulationEnvelope: { attack: 2, decay: 1, sustain: 0.9, release: 4 },
+  }).connect(droneLPF);
+  droneSynth.volume.value = -12;
 
-  soundscapePlaying = true;
-  soundscapeStartTime = Tone.now();
+  // Drone mod index LFO
+  const droneLFO = new Tone.LFO({ frequency: 0.02, min: 0.3, max: 0.8, type: 'sine' });
+  droneLFO.connect(droneSynth.modulationIndex);
 
-  // Fade in over 10 seconds
-  fadeGain.gain.setValueAtTime(0, now);
-  fadeGain.gain.linearRampToValueAtTime(1, now + 10);
+  // ─── LAYER 3: PIANO ───
+  const pianoHP = new Tone.Filter({ frequency: 250, type: 'highpass' }).connect(eqHP);
+  const pianoPresence = new Tone.Filter({ frequency: 3000, type: 'peaking', gain: 2, Q: 1.0 }).connect(pianoHP);
+  const pianoPanner = new Tone.Panner(-0.2).connect(pianoPresence);
+  const pianoSendGain = new Tone.Gain(0.80).connect(reverbBus);
+  pianoPanner.connect(pianoSendGain);
+  pianoSampler.connect(pianoPanner);
+  pianoSampler.volume.value = -8;
 
-  // Schedule fade out: at DURATION-15, start fading to 0
-  fadeGain.gain.setValueAtTime(1, now + SOUNDSCAPE_DURATION - 15);
-  fadeGain.gain.linearRampToValueAtTime(0, now + SOUNDSCAPE_DURATION);
+  // ─── LAYER 4: HARP ───
+  const harpHP = new Tone.Filter({ frequency: 400, type: 'highpass' }).connect(eqHP);
+  const harpAir = new Tone.Filter({ frequency: 5000, type: 'highshelf', gain: 2 }).connect(harpHP);
+  const harpPanner = new Tone.Panner(0.22).connect(harpAir);
+  const harpSendGain = new Tone.Gain(0.70).connect(reverbBus);
+  harpPanner.connect(harpSendGain);
+  harpSampler.connect(harpPanner);
+  harpSampler.volume.value = -10;
 
+  // ─── LAYER 5: VOCAL PAD ───
+  const padChorus = new Tone.Chorus({ frequency: 0.5, delayTime: 3.5, depth: 0.7, wet: 1.0 }).connect(eqHP);
+  padChorus.start();
+  const padFilter = new Tone.AutoFilter({
+    frequency: 0.03, baseFrequency: 2000, octaves: 1.5, type: 'sine', depth: 1, wet: 1,
+    filter: { type: 'lowpass', Q: 0.5 },
+  }).connect(padChorus);
+  padFilter.start();
+  const padSendGain = new Tone.Gain(0.90).connect(reverbBus);
+  padFilter.connect(padSendGain);
+
+  const padA = new Tone.GrainPlayer({
+    url: toneBuffer, grainSize: 0.4, overlap: 0.3, loop: true,
+    loopStart: 0, loopEnd: rawAudioBuffer.duration, playbackRate: 0.4, detune: 0,
+  }).connect(padFilter);
+
+  const padB = new Tone.GrainPlayer({
+    url: toneBuffer, grainSize: 0.3, overlap: 0.25, loop: true,
+    loopStart: 0, loopEnd: rawAudioBuffer.duration, playbackRate: 0.8, detune: 700,
+  }).connect(padFilter);
+
+  const padGain = new Tone.Volume(-14);
+  padA.connect(padGain);
+  padB.connect(padGain);
+  padGain.connect(padFilter);
+
+  // ─── Store references for live control ───
+  nodes = {
+    masterVol, limiter, masterComp, eqAir, eqMudDip, eqHP,
+    reverbBus, delayL, delayR, delayFilter, delayMerge, fxBusOut,
+    voiceGrain, voiceBandpass, voiceSend,
+    droneSynth, droneLPF, droneSend, droneLFO,
+    pianoSampler, pianoHP, pianoPresence, pianoPanner, pianoSendGain,
+    harpSampler, harpHP, harpAir, harpPanner, harpSendGain,
+    padA, padB, padGain, padChorus, padFilter, padSendGain,
+  };
+  allDisposables = Object.values(nodes);
+
+  // ─── MACRO TIMELINE via Tone.Transport ───
+  const T = Tone.getTransport();
+
+  // ── Section 1: Emergence (0:00 - 0:15) ──
+  T.schedule(time => {
+    // Sub drone fades in
+    droneSynth.volume.setValueAtTime(-60, time);
+    droneSynth.volume.linearRampToValueAtTime(-12, time + 10);
+    droneSynth.triggerAttack(midiToName(droneRoot), time);
+    droneLFO.start(time + 15); // LFO starts in section 2
+
+    // Voice grain starts sparse
+    voiceGrain.volume.setValueAtTime(-20, time);
+    voiceGrain.volume.linearRampToValueAtTime(-6, time + 15);
+    voiceGrain.start(time);
+
+    // Vocal pad barely perceptible
+    padGain.volume.setValueAtTime(-30, time);
+    padGain.volume.linearRampToValueAtTime(-14, time + 40);
+    padA.start(time);
+    padB.start(time + 0.15);
+
+    // Delay muted initially
+    delayMerge.gain.setValueAtTime(0, time);
+    delayMerge.gain.linearRampToValueAtTime(0.3, time + 20);
+  }, 0);
+
+  // ── Section 2: Establishing (0:15 - 0:40) ──
+  // Piano enters with sparse single notes
+  let lastPianoTime = 0;
+  const schedulePianoNote = (startSec, endSec, chordChance) => {
+    let t = startSec;
+    let voicingIdx = 0;
+    while (t < endSec) {
+      const noteTime = t;
+      const useChord = Math.random() < chordChance;
+      const skip = Math.random() < 0.2; // 20% skip
+
+      if (!skip) {
+        T.schedule(time => {
+          if (!playing) return;
+          const velocity = 0.3 + Math.random() * 0.3; // 40-80 out of 127 ≈ 0.3-0.6
+          if (useChord) {
+            const chord = getChordVoicing(pianoRoot, voicingIdx);
+            chord.forEach((note, i) => {
+              const offset = i * (0.02 + Math.random() * 0.06); // 20-80ms humanise
+              pianoSampler.triggerAttackRelease(note, '4n', time + offset, velocity);
+            });
+          } else {
+            const scale = buildScale(pianoRoot, 'major').filter(n => n >= 48 && n <= 72);
+            const note = midiToName(scale[Math.floor(Math.random() * scale.length)]);
+            pianoSampler.triggerAttackRelease(note, '4n', time, velocity);
+          }
+          voicingIdx++;
+        }, noteTime);
+        lastPianoTime = noteTime;
+      }
+      t += 8 + Math.random() * 7; // 8-15 second intervals
+    }
+  };
+
+  // Piano: establishing = mostly single notes
+  schedulePianoNote(18, 40, 0.3);
+  // Piano: heart = mostly chords
+  schedulePianoNote(40, 75, 0.6);
+  // Piano: thinning = back to single notes
+  schedulePianoNote(75, 100, 0.25);
+  // Piano: last note ~102
+  schedulePianoNote(100, 103, 0.4);
+
+  // ── Harp: enters at 0:45 ──
+  const scheduleHarpNote = (startSec, endSec, intervalMin, intervalMax) => {
+    let t = startSec;
+    while (t < endSec) {
+      const noteTime = t;
+      const doGliss = Math.random() < 0.3; // 30% glissando gesture
+
+      T.schedule(time => {
+        if (!playing) return;
+        const velocity = 0.2 + Math.random() * 0.25;
+        if (doGliss) {
+          for (let i = 0; i < 3; i++) {
+            const note = getPentatonicNote(harpRoot, 60, 84);
+            harpSampler.triggerAttackRelease(note, '2n', time + i * (0.15 + Math.random() * 0.15), velocity);
+          }
+        } else {
+          const note = getPentatonicNote(harpRoot, 60, 84);
+          harpSampler.triggerAttackRelease(note, '2n', time, velocity);
+        }
+      }, noteTime);
+
+      t += intervalMin + Math.random() * (intervalMax - intervalMin);
+    }
+  };
+
+  scheduleHarpNote(45, 75, 6, 12);    // Heart: regular
+  scheduleHarpNote(75, 100, 15, 20);   // Thinning: sparse
+  scheduleHarpNote(100, 106, 20, 25);  // Last note ~105
+
+  // ── Section 3: Heart (0:40 - 1:15) ──
+  T.schedule(time => {
+    // Open up voice grain pitch slightly
+    voiceGrain.playbackRate = 0.85;
+  }, 40);
+
+  // ── Section 4: Thinning (1:15 - 1:40) ──
+  T.schedule(time => {
+    voiceGrain.volume.linearRampToValueAtTime(-10, time + 25);
+    voiceGrain.playbackRate = 0.7;
+  }, 75);
+
+  // ── Section 5: Dissolution (1:40 - 2:00) ──
+  T.schedule(time => {
+    // Voice grain fades
+    voiceGrain.volume.linearRampToValueAtTime(-40, time + 18);
+
+    // Vocal pad filter closes
+    padFilter.baseFrequency = 600;
+
+    // Drone fades out
+    droneSynth.volume.linearRampToValueAtTime(-60, time + 15);
+
+    // Pad fades
+    padGain.volume.linearRampToValueAtTime(-40, time + 18);
+  }, 100);
+
+  // Final cleanup schedule
+  T.schedule(() => {
+    if (playing) stopSoundscape();
+  }, DURATION + 3); // allow reverb tail
+
+  // ── Start transport and playback ──
+  T.start();
+  playing = true;
+  progressWrap.style.display = 'block';
+  audioControlsPanel.style.display = 'block';
   statusEl.textContent = 'Playing...';
 
-  // Auto-stop after duration
-  stopTimeoutId = setTimeout(() => { stopSoundscape(); }, SOUNDSCAPE_DURATION * 1000 + 500);
-
-  // Progress
-  function updateProgress() {
-    if (!soundscapePlaying) return;
-    const elapsed = Tone.now() - soundscapeStartTime;
-    const pct = Math.min(elapsed / SOUNDSCAPE_DURATION, 1);
+  // Progress animation
+  const startWall = Tone.now();
+  (function updateProgress() {
+    if (!playing) return;
+    const elapsed = Tone.getTransport().seconds;
+    const pct = Math.min(elapsed / DURATION, 1);
     progressFill.style.width = (pct * 100) + '%';
     const mins = Math.floor(elapsed / 60);
     const secs = Math.floor(elapsed % 60);
     timeDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')} / 2:00`;
     if (pct < 1) progressAnimId = requestAnimationFrame(updateProgress);
-  }
-  progressAnimId = requestAnimationFrame(updateProgress);
+  })();
 }
 
 function stopSoundscape() {
-  soundscapePlaying = false;
+  playing = false;
   cancelAnimationFrame(progressAnimId);
-  clearTimeout(stopTimeoutId);
 
-  [grainLow, grainMid, grainHigh].forEach(g => {
-    if (g) { try { g.stop(); } catch(e) {} g.dispose(); }
-  });
-  [fadeGain, autoFilter, reverb, chorus, compressor, masterVol].forEach(n => {
-    if (n) n.dispose();
-  });
-  grainLow = grainMid = grainHigh = null;
-  reverb = autoFilter = chorus = compressor = masterVol = fadeGain = null;
+  Tone.getTransport().stop();
+  Tone.getTransport().cancel();
+
+  allDisposables.forEach(n => { try { if (n && n.dispose) n.dispose(); } catch(e) {} });
+  allDisposables = [];
+  nodes = {};
 
   statusEl.textContent = rawAudioBuffer
     ? `Recorded ${rawAudioBuffer.duration.toFixed(1)}s of audio. Ready to generate.`
@@ -597,99 +832,55 @@ function stopSoundscape() {
 
 // ─── LIVE CONTROL WIRING ───
 
-function wireSlider(id, valId, formatFn, applyFn) {
-  const slider = document.getElementById(id);
-  const valEl = document.getElementById(valId);
-  slider.addEventListener('input', () => {
-    const v = parseFloat(slider.value);
-    valEl.textContent = formatFn(v);
-    applyFn(v);
-  });
+function wireSlider(id, valId, fmt, apply) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => { const v = parseFloat(sl.value); vl.textContent = fmt(v); apply(v); });
 }
 
-// Reverb
-wireSlider('ctrl-reverb-decay', 'val-reverb-decay',
-  v => v.toFixed(1) + 's',
-  v => { if (reverb) { reverb.decay = v; reverb.generate(); } }
-);
-wireSlider('ctrl-reverb-wet', 'val-reverb-wet',
-  v => Math.round(v * 100) + '%',
-  v => { if (reverb) reverb.wet.value = v; }
-);
+// Voice texture
+wireSlider('ctrl-voice-vol', 'val-voice-vol', v => v + ' dB',
+  v => { if (nodes.voiceGrain) nodes.voiceGrain.volume.value = v; });
+wireSlider('ctrl-voice-grain', 'val-voice-grain', v => Math.round(v * 1000) + 'ms',
+  v => { if (nodes.voiceGrain) nodes.voiceGrain.grainSize = v; });
+wireSlider('ctrl-voice-send', 'val-voice-send', v => Math.round(v * 100) + '%',
+  v => { if (nodes.voiceSend) nodes.voiceSend.gain.value = v; });
 
-// Filter
-wireSlider('ctrl-filter-freq', 'val-filter-freq',
-  v => Math.round(v),
-  v => { if (autoFilter) autoFilter.baseFrequency = v; }
-);
-wireSlider('ctrl-filter-lfo', 'val-filter-lfo',
-  v => v.toFixed(2),
-  v => { if (autoFilter) autoFilter.frequency.value = v; }
-);
-wireSlider('ctrl-filter-depth', 'val-filter-depth',
-  v => Math.round(v),
-  v => { if (autoFilter) autoFilter.octaves = Math.log2(Math.max(v, 1) / Math.max(autoFilter.baseFrequency, 1)) || 1; }
-);
+// Sub drone
+wireSlider('ctrl-drone-vol', 'val-drone-vol', v => v + ' dB',
+  v => { if (nodes.droneSynth) nodes.droneSynth.volume.value = v; });
+wireSlider('ctrl-drone-mod', 'val-drone-mod', v => v.toFixed(2),
+  v => { if (nodes.droneSynth) nodes.droneSynth.modulationIndex.value = v; });
 
-// Grain layers
-wireSlider('ctrl-low-size', 'val-low-size',
-  v => v.toFixed(1) + 's',
-  v => { if (grainLow) grainLow.grainSize = v; }
-);
-wireSlider('ctrl-low-detune', 'val-low-detune',
-  v => Math.round(v),
-  v => { if (grainLow) grainLow.detune = v; }
-);
-wireSlider('ctrl-low-vol', 'val-low-vol',
-  v => v + ' dB',
-  v => { if (grainLow) grainLow.volume.value = v; }
-);
+// Piano
+wireSlider('ctrl-piano-vol', 'val-piano-vol', v => v + ' dB',
+  v => { if (nodes.pianoSampler) nodes.pianoSampler.volume.value = v; });
+wireSlider('ctrl-piano-send', 'val-piano-send', v => Math.round(v * 100) + '%',
+  v => { if (nodes.pianoSendGain) nodes.pianoSendGain.gain.value = v; });
 
-wireSlider('ctrl-mid-size', 'val-mid-size',
-  v => v.toFixed(1) + 's',
-  v => { if (grainMid) grainMid.grainSize = v; }
-);
-wireSlider('ctrl-mid-detune', 'val-mid-detune',
-  v => Math.round(v),
-  v => { if (grainMid) grainMid.detune = v; }
-);
-wireSlider('ctrl-mid-vol', 'val-mid-vol',
-  v => v + ' dB',
-  v => { if (grainMid) grainMid.volume.value = v; }
-);
+// Harp
+wireSlider('ctrl-harp-vol', 'val-harp-vol', v => v + ' dB',
+  v => { if (nodes.harpSampler) nodes.harpSampler.volume.value = v; });
+wireSlider('ctrl-harp-send', 'val-harp-send', v => Math.round(v * 100) + '%',
+  v => { if (nodes.harpSendGain) nodes.harpSendGain.gain.value = v; });
 
-wireSlider('ctrl-high-size', 'val-high-size',
-  v => v.toFixed(1) + 's',
-  v => { if (grainHigh) grainHigh.grainSize = v; }
-);
-wireSlider('ctrl-high-detune', 'val-high-detune',
-  v => Math.round(v),
-  v => { if (grainHigh) grainHigh.detune = v; }
-);
-wireSlider('ctrl-high-vol', 'val-high-vol',
-  v => v + ' dB',
-  v => { if (grainHigh) grainHigh.volume.value = v; }
-);
+// Vocal pad
+wireSlider('ctrl-pad-vol', 'val-pad-vol', v => v + ' dB',
+  v => { if (nodes.padGain) nodes.padGain.volume.value = v; });
+wireSlider('ctrl-pad-filter', 'val-pad-filter', v => Math.round(v),
+  v => { if (nodes.padFilter) nodes.padFilter.baseFrequency = v; });
+wireSlider('ctrl-pad-send', 'val-pad-send', v => Math.round(v * 100) + '%',
+  v => { if (nodes.padSendGain) nodes.padSendGain.gain.value = v; });
 
-// Chorus
-wireSlider('ctrl-chorus-depth', 'val-chorus-depth',
-  v => v.toFixed(2),
-  v => { if (chorus) chorus.depth = v; }
-);
-wireSlider('ctrl-chorus-freq', 'val-chorus-freq',
-  v => v.toFixed(1) + ' Hz',
-  v => { if (chorus) chorus.frequency.value = v; }
-);
-wireSlider('ctrl-chorus-wet', 'val-chorus-wet',
-  v => Math.round(v * 100) + '%',
-  v => { if (chorus) chorus.wet.value = v; }
-);
+// Reverb bus
+wireSlider('ctrl-reverb-decay', 'val-reverb-decay', v => v.toFixed(1) + 's',
+  v => { if (nodes.reverbBus) { nodes.reverbBus.decay = v; nodes.reverbBus.generate(); } });
+wireSlider('ctrl-delay-wet', 'val-delay-wet', v => Math.round(v * 100) + '%',
+  v => { if (nodes.delayMerge) nodes.delayMerge.gain.value = v; });
 
 // Master
-wireSlider('ctrl-master-vol', 'val-master-vol',
-  v => v + ' dB',
-  v => { if (masterVol) masterVol.volume.value = v; }
-);
+wireSlider('ctrl-master-vol', 'val-master-vol', v => v + ' dB',
+  v => { if (nodes.masterVol) nodes.masterVol.volume.value = v; });
 </script>
 
 </body>
