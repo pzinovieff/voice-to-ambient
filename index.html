@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice to Ambient</title>
+<script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0f;
+  color: #b0b0c0;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+h1 {
+  font-size: 1.4rem;
+  color: #6a6a8a;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+#status {
+  font-size: 0.85rem;
+  color: #5a5a7a;
+  margin-bottom: 1rem;
+  min-height: 1.2em;
+}
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+button {
+  background: #1a1a2e;
+  color: #8888aa;
+  border: 1px solid #2a2a4a;
+  padding: 0.7rem 1.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+}
+button:hover:not(:disabled) {
+  background: #22223a;
+  border-color: #4a4a6a;
+  color: #aaaacc;
+}
+button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+button.recording {
+  border-color: #6a2a2a;
+  color: #cc6666;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+#level-meter {
+  width: 300px;
+  height: 4px;
+  background: #1a1a2e;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+#level-fill {
+  height: 100%;
+  width: 0%;
+  background: #4a4a6a;
+  transition: width 0.05s;
+}
+#progress-wrap {
+  width: 300px;
+  margin-bottom: 1.5rem;
+  display: none;
+}
+#progress-bar {
+  width: 100%;
+  height: 3px;
+  background: #1a1a2e;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+#progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #4a4a6a;
+  transition: width 0.25s linear;
+}
+#time-display {
+  font-size: 0.75rem;
+  color: #4a4a6a;
+  text-align: center;
+}
+
+/* ─── Audio Controls Panel ─── */
+#audio-controls {
+  width: 100%;
+  max-width: 600px;
+  border: 1px solid #1a1a2e;
+  padding: 1.2rem;
+  margin-top: 0.5rem;
+  display: none;
+}
+#audio-controls h2 {
+  font-size: 0.75rem;
+  color: #4a4a6a;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.ctrl-section {
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid #111122;
+}
+.ctrl-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.ctrl-section h3 {
+  font-size: 0.7rem;
+  color: #5a5a7a;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.4rem;
+}
+.ctrl-row label {
+  font-size: 0.7rem;
+  color: #6a6a8a;
+  width: 100px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.ctrl-row input[type="range"] {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #1a1a2e;
+  outline: none;
+  border-radius: 2px;
+}
+.ctrl-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #4a4a6a;
+  cursor: pointer;
+  border: none;
+}
+.ctrl-row input[type="range"]::-webkit-slider-thumb:hover {
+  background: #6a6a8a;
+}
+.ctrl-row .val {
+  font-size: 0.65rem;
+  color: #4a4a6a;
+  width: 50px;
+  text-align: left;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<h1>Voice to Ambient</h1>
+<div id="status">Press record and hum, sing, or speak for a few seconds.</div>
+<div id="level-meter"><div id="level-fill"></div></div>
+<div class="controls">
+  <button id="btn-record">Record</button>
+  <button id="btn-generate" disabled>Generate Soundscape</button>
+  <button id="btn-stop-playback" disabled>Stop</button>
+</div>
+<div id="progress-wrap">
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="time-display">0:00 / 2:00</div>
+</div>
+
+<div id="audio-controls">
+  <h2>Audio Controls</h2>
+
+  <div class="ctrl-section">
+    <h3>Reverb</h3>
+    <div class="ctrl-row">
+      <label>Decay</label>
+      <input type="range" id="ctrl-reverb-decay" min="1" max="15" step="0.5" value="8">
+      <span class="val" id="val-reverb-decay">8.0s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Mix</label>
+      <input type="range" id="ctrl-reverb-wet" min="0" max="1" step="0.01" value="0.75">
+      <span class="val" id="val-reverb-wet">75%</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Filter</h3>
+    <div class="ctrl-row">
+      <label>Cutoff</label>
+      <input type="range" id="ctrl-filter-freq" min="100" max="8000" step="10" value="3000">
+      <span class="val" id="val-filter-freq">3000</span>
+    </div>
+    <div class="ctrl-row">
+      <label>LFO Speed</label>
+      <input type="range" id="ctrl-filter-lfo" min="0.01" max="1" step="0.01" value="0.08">
+      <span class="val" id="val-filter-lfo">0.08</span>
+    </div>
+    <div class="ctrl-row">
+      <label>LFO Depth</label>
+      <input type="range" id="ctrl-filter-depth" min="0" max="4000" step="50" value="2000">
+      <span class="val" id="val-filter-depth">2000</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Grains &mdash; Low</h3>
+    <div class="ctrl-row">
+      <label>Size</label>
+      <input type="range" id="ctrl-low-size" min="0.2" max="4" step="0.1" value="2">
+      <span class="val" id="val-low-size">2.0s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Detune</label>
+      <input type="range" id="ctrl-low-detune" min="-2400" max="0" step="50" value="-1200">
+      <span class="val" id="val-low-detune">-1200</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-low-vol" min="-40" max="0" step="1" value="-12">
+      <span class="val" id="val-low-vol">-12 dB</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Grains &mdash; Mid</h3>
+    <div class="ctrl-row">
+      <label>Size</label>
+      <input type="range" id="ctrl-mid-size" min="0.1" max="3" step="0.1" value="1">
+      <span class="val" id="val-mid-size">1.0s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Detune</label>
+      <input type="range" id="ctrl-mid-detune" min="-1200" max="1200" step="50" value="0">
+      <span class="val" id="val-mid-detune">0</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-mid-vol" min="-40" max="0" step="1" value="-10">
+      <span class="val" id="val-mid-vol">-10 dB</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Grains &mdash; High</h3>
+    <div class="ctrl-row">
+      <label>Size</label>
+      <input type="range" id="ctrl-high-size" min="0.05" max="2" step="0.05" value="0.5">
+      <span class="val" id="val-high-size">0.5s</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Detune</label>
+      <input type="range" id="ctrl-high-detune" min="0" max="2400" step="50" value="800">
+      <span class="val" id="val-high-detune">800</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-high-vol" min="-40" max="0" step="1" value="-16">
+      <span class="val" id="val-high-vol">-16 dB</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Chorus</h3>
+    <div class="ctrl-row">
+      <label>Depth</label>
+      <input type="range" id="ctrl-chorus-depth" min="0" max="1" step="0.01" value="0.5">
+      <span class="val" id="val-chorus-depth">0.50</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Frequency</label>
+      <input type="range" id="ctrl-chorus-freq" min="0.1" max="4" step="0.1" value="0.4">
+      <span class="val" id="val-chorus-freq">0.4 Hz</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Mix</label>
+      <input type="range" id="ctrl-chorus-wet" min="0" max="1" step="0.01" value="0.3">
+      <span class="val" id="val-chorus-wet">30%</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <h3>Master</h3>
+    <div class="ctrl-row">
+      <label>Volume</label>
+      <input type="range" id="ctrl-master-vol" min="-30" max="0" step="1" value="-6">
+      <span class="val" id="val-master-vol">-6 dB</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const SOUNDSCAPE_DURATION = 120;
+
+const statusEl = document.getElementById('status');
+const levelFill = document.getElementById('level-fill');
+const btnRecord = document.getElementById('btn-record');
+const btnGenerate = document.getElementById('btn-generate');
+const btnStop = document.getElementById('btn-stop-playback');
+const progressWrap = document.getElementById('progress-wrap');
+const progressFill = document.getElementById('progress-fill');
+const timeDisplay = document.getElementById('time-display');
+const audioControlsPanel = document.getElementById('audio-controls');
+
+let nativeCtx = null; // for recording only
+let recordedBuffer = null; // Tone.ToneAudioBuffer
+let rawAudioBuffer = null; // raw AudioBuffer for recording
+let isRecording = false;
+let mediaStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let analyserNode = null;
+let levelAnimId = null;
+
+// Soundscape state
+let soundscapePlaying = false;
+let soundscapeStartTime = 0;
+let progressAnimId = null;
+let stopTimeoutId = null;
+
+// Tone.js nodes (persistent while playing)
+let grainLow = null, grainMid = null, grainHigh = null;
+let reverb = null, autoFilter = null, chorus = null, compressor = null, masterVol = null;
+let fadeGain = null;
+
+// ─── RECORDING (uses native API — Tone.js doesn't need to be started yet) ───
+
+btnRecord.addEventListener('click', async () => {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+});
+
+async function startRecording() {
+  try {
+    if (!nativeCtx) {
+      nativeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (nativeCtx.state === 'suspended') await nativeCtx.resume();
+
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(mediaStream);
+    recordedChunks = [];
+
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+      const arrayBuf = await blob.arrayBuffer();
+      rawAudioBuffer = await nativeCtx.decodeAudioData(arrayBuf);
+      statusEl.textContent = `Recorded ${rawAudioBuffer.duration.toFixed(1)}s of audio. Ready to generate.`;
+      btnGenerate.disabled = false;
+      levelFill.style.width = '0%';
+    };
+
+    const source = nativeCtx.createMediaStreamSource(mediaStream);
+    analyserNode = nativeCtx.createAnalyser();
+    analyserNode.fftSize = 256;
+    source.connect(analyserNode);
+    startLevelMeter();
+
+    mediaRecorder.start();
+    isRecording = true;
+    btnRecord.textContent = 'Stop Recording';
+    btnRecord.classList.add('recording');
+    btnGenerate.disabled = true;
+    statusEl.textContent = 'Recording...';
+  } catch (err) {
+    statusEl.textContent = 'Mic access denied. Please allow microphone access.';
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  cancelAnimationFrame(levelAnimId);
+  isRecording = false;
+  btnRecord.textContent = 'Record';
+  btnRecord.classList.remove('recording');
+}
+
+function startLevelMeter() {
+  const data = new Uint8Array(analyserNode.fftSize);
+  function update() {
+    analyserNode.getByteTimeDomainData(data);
+    let max = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i] - 128) / 128;
+      if (v > max) max = v;
+    }
+    levelFill.style.width = (max * 100) + '%';
+    levelAnimId = requestAnimationFrame(update);
+  }
+  update();
+}
+
+// ─── CONVERT NATIVE AUDIOBUFFER TO TONE BUFFER ───
+
+function audioBufferToToneBuffer(audioBuffer) {
+  return new Tone.ToneAudioBuffer().fromArray(
+    Array.from({ length: audioBuffer.numberOfChannels }, (_, ch) =>
+      audioBuffer.getChannelData(ch)
+    )
+  );
+}
+
+// ─── SOUNDSCAPE ───
+
+btnGenerate.addEventListener('click', async () => {
+  if (!rawAudioBuffer) return;
+  stopSoundscape();
+  await startSoundscape();
+});
+
+btnStop.addEventListener('click', () => {
+  stopSoundscape();
+});
+
+async function startSoundscape() {
+  await Tone.start();
+
+  statusEl.textContent = 'Generating...';
+  btnGenerate.disabled = true;
+  btnRecord.disabled = true;
+  btnStop.disabled = false;
+  progressWrap.style.display = 'block';
+  audioControlsPanel.style.display = 'block';
+
+  const toneBuffer = audioBufferToToneBuffer(rawAudioBuffer);
+
+  // ─── Effect chain ───
+  // GrainPlayers -> fadeGain -> autoFilter -> reverb -> chorus -> compressor -> masterVol -> destination
+
+  masterVol = new Tone.Volume(-6).toDestination();
+
+  compressor = new Tone.Compressor({
+    threshold: -12,
+    ratio: 4,
+    attack: 0.03,
+    release: 0.25,
+  }).connect(masterVol);
+
+  chorus = new Tone.Chorus({
+    frequency: 0.4,
+    delayTime: 12,
+    depth: 0.5,
+    wet: 0.3,
+  }).connect(compressor);
+  chorus.start();
+
+  reverb = new Tone.Reverb({
+    decay: 8,
+    wet: 0.75,
+    preDelay: 0.1,
+  }).connect(chorus);
+  await reverb.generate();
+
+  autoFilter = new Tone.AutoFilter({
+    frequency: 0.08,
+    baseFrequency: 3000,
+    octaves: 2.5,
+    type: 'sine',
+    depth: 1,
+    wet: 1,
+    filter: { type: 'lowpass', Q: 0.5 },
+  }).connect(reverb);
+  autoFilter.start();
+
+  fadeGain = new Tone.Gain(0).connect(autoFilter);
+
+  // ─── Three grain layers ───
+  grainLow = new Tone.GrainPlayer({
+    url: toneBuffer,
+    grainSize: 2,
+    overlap: 0.7,
+    loop: true,
+    loopStart: 0,
+    loopEnd: rawAudioBuffer.duration,
+    playbackRate: 1,
+    detune: -1200,
+    reverse: false,
+  }).connect(fadeGain);
+  grainLow.volume.value = -12;
+
+  grainMid = new Tone.GrainPlayer({
+    url: toneBuffer,
+    grainSize: 1,
+    overlap: 0.6,
+    loop: true,
+    loopStart: 0,
+    loopEnd: rawAudioBuffer.duration,
+    playbackRate: 1,
+    detune: 0,
+    reverse: false,
+  }).connect(fadeGain);
+  grainMid.volume.value = -10;
+
+  grainHigh = new Tone.GrainPlayer({
+    url: toneBuffer,
+    grainSize: 0.5,
+    overlap: 0.5,
+    loop: true,
+    loopStart: 0,
+    loopEnd: rawAudioBuffer.duration,
+    playbackRate: 1,
+    detune: 800,
+    reverse: false,
+  }).connect(fadeGain);
+  grainHigh.volume.value = -16;
+
+  // Start all three layers
+  const now = Tone.now();
+  grainLow.start(now);
+  grainMid.start(now + 0.1);  // slight offset to avoid phase alignment
+  grainHigh.start(now + 0.2);
+
+  soundscapePlaying = true;
+  soundscapeStartTime = Tone.now();
+
+  // Fade in over 10 seconds
+  fadeGain.gain.setValueAtTime(0, now);
+  fadeGain.gain.linearRampToValueAtTime(1, now + 10);
+
+  // Schedule fade out: at DURATION-15, start fading to 0
+  fadeGain.gain.setValueAtTime(1, now + SOUNDSCAPE_DURATION - 15);
+  fadeGain.gain.linearRampToValueAtTime(0, now + SOUNDSCAPE_DURATION);
+
+  statusEl.textContent = 'Playing...';
+
+  // Auto-stop after duration
+  stopTimeoutId = setTimeout(() => { stopSoundscape(); }, SOUNDSCAPE_DURATION * 1000 + 500);
+
+  // Progress
+  function updateProgress() {
+    if (!soundscapePlaying) return;
+    const elapsed = Tone.now() - soundscapeStartTime;
+    const pct = Math.min(elapsed / SOUNDSCAPE_DURATION, 1);
+    progressFill.style.width = (pct * 100) + '%';
+    const mins = Math.floor(elapsed / 60);
+    const secs = Math.floor(elapsed % 60);
+    timeDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')} / 2:00`;
+    if (pct < 1) progressAnimId = requestAnimationFrame(updateProgress);
+  }
+  progressAnimId = requestAnimationFrame(updateProgress);
+}
+
+function stopSoundscape() {
+  soundscapePlaying = false;
+  cancelAnimationFrame(progressAnimId);
+  clearTimeout(stopTimeoutId);
+
+  [grainLow, grainMid, grainHigh].forEach(g => {
+    if (g) { try { g.stop(); } catch(e) {} g.dispose(); }
+  });
+  [fadeGain, autoFilter, reverb, chorus, compressor, masterVol].forEach(n => {
+    if (n) n.dispose();
+  });
+  grainLow = grainMid = grainHigh = null;
+  reverb = autoFilter = chorus = compressor = masterVol = fadeGain = null;
+
+  statusEl.textContent = rawAudioBuffer
+    ? `Recorded ${rawAudioBuffer.duration.toFixed(1)}s of audio. Ready to generate.`
+    : 'Press record and hum, sing, or speak for a few seconds.';
+  btnGenerate.disabled = !rawAudioBuffer;
+  btnRecord.disabled = false;
+  btnStop.disabled = true;
+  progressFill.style.width = '0%';
+}
+
+// ─── LIVE CONTROL WIRING ───
+
+function wireSlider(id, valId, formatFn, applyFn) {
+  const slider = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    valEl.textContent = formatFn(v);
+    applyFn(v);
+  });
+}
+
+// Reverb
+wireSlider('ctrl-reverb-decay', 'val-reverb-decay',
+  v => v.toFixed(1) + 's',
+  v => { if (reverb) { reverb.decay = v; reverb.generate(); } }
+);
+wireSlider('ctrl-reverb-wet', 'val-reverb-wet',
+  v => Math.round(v * 100) + '%',
+  v => { if (reverb) reverb.wet.value = v; }
+);
+
+// Filter
+wireSlider('ctrl-filter-freq', 'val-filter-freq',
+  v => Math.round(v),
+  v => { if (autoFilter) autoFilter.baseFrequency = v; }
+);
+wireSlider('ctrl-filter-lfo', 'val-filter-lfo',
+  v => v.toFixed(2),
+  v => { if (autoFilter) autoFilter.frequency.value = v; }
+);
+wireSlider('ctrl-filter-depth', 'val-filter-depth',
+  v => Math.round(v),
+  v => { if (autoFilter) autoFilter.octaves = Math.log2(Math.max(v, 1) / Math.max(autoFilter.baseFrequency, 1)) || 1; }
+);
+
+// Grain layers
+wireSlider('ctrl-low-size', 'val-low-size',
+  v => v.toFixed(1) + 's',
+  v => { if (grainLow) grainLow.grainSize = v; }
+);
+wireSlider('ctrl-low-detune', 'val-low-detune',
+  v => Math.round(v),
+  v => { if (grainLow) grainLow.detune = v; }
+);
+wireSlider('ctrl-low-vol', 'val-low-vol',
+  v => v + ' dB',
+  v => { if (grainLow) grainLow.volume.value = v; }
+);
+
+wireSlider('ctrl-mid-size', 'val-mid-size',
+  v => v.toFixed(1) + 's',
+  v => { if (grainMid) grainMid.grainSize = v; }
+);
+wireSlider('ctrl-mid-detune', 'val-mid-detune',
+  v => Math.round(v),
+  v => { if (grainMid) grainMid.detune = v; }
+);
+wireSlider('ctrl-mid-vol', 'val-mid-vol',
+  v => v + ' dB',
+  v => { if (grainMid) grainMid.volume.value = v; }
+);
+
+wireSlider('ctrl-high-size', 'val-high-size',
+  v => v.toFixed(1) + 's',
+  v => { if (grainHigh) grainHigh.grainSize = v; }
+);
+wireSlider('ctrl-high-detune', 'val-high-detune',
+  v => Math.round(v),
+  v => { if (grainHigh) grainHigh.detune = v; }
+);
+wireSlider('ctrl-high-vol', 'val-high-vol',
+  v => v + ' dB',
+  v => { if (grainHigh) grainHigh.volume.value = v; }
+);
+
+// Chorus
+wireSlider('ctrl-chorus-depth', 'val-chorus-depth',
+  v => v.toFixed(2),
+  v => { if (chorus) chorus.depth = v; }
+);
+wireSlider('ctrl-chorus-freq', 'val-chorus-freq',
+  v => v.toFixed(1) + ' Hz',
+  v => { if (chorus) chorus.frequency.value = v; }
+);
+wireSlider('ctrl-chorus-wet', 'val-chorus-wet',
+  v => Math.round(v * 100) + '%',
+  v => { if (chorus) chorus.wet.value = v; }
+);
+
+// Master
+wireSlider('ctrl-master-vol', 'val-master-vol',
+  v => v + ' dB',
+  v => { if (masterVol) masterVol.volume.value = v; }
+);
+</script>
+
+</body>
+</html>
